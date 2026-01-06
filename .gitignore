@@ -1,2 +1,3 @@
 *.mkv
 *.ass
+__pycache__/
