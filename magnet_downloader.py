@@ -3,28 +3,34 @@
 Extract magnet links from nyaa.si and download with transmission-cli (all in one command).
 
 Usage:
-    uv run magnet_downloader.py <nyaa.si_url> <arc_name_or_folder>
+    uv run magnet_downloader.py <nyaa.si_url> <folder_name>
 
 Examples:
-    # Auto-detect arc number
-    uv run magnet_downloader.py \
-      "https://nyaa.si/?f=0&c=0_0&q=one+pace+water+seven" \
-      water_seven
-
-    # Single torrent page
-    uv run magnet_downloader.py \
-      "https://nyaa.si/view/608554" \
-      thriller_bark
-
-    # Direct folder name
+    # Use exact folder name (starts with "arc")
     uv run magnet_downloader.py \
       "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
       "arc15-jaya"
 
+    # Auto-prefixes with "arc-" (doesn't start with "arc")
+    uv run magnet_downloader.py \
+      "https://nyaa.si/?f=0&c=0_0&q=one+pace+water+seven" \
+      "water_seven"
+    # Creates: arc-water_seven/
+
+    # Explicit path always used as-is
+    uv run magnet_downloader.py \
+      "https://nyaa.si/view/608554" \
+      "./my-custom-folder"
+
+Folder naming rules:
+  - Starts with "arc": used exactly as-is
+  - Contains "/": used exactly as-is (explicit path)
+  - Otherwise: auto-prefixes with "arc-" and normalizes
+
 The script:
   1. Fetches the nyaa.si page
   2. Extracts all magnet links
-  3. Creates the arc folder
+  3. Creates the folder
   4. Starts all downloads asynchronously with transmission-cli
   5. Returns immediately (downloads continue in background)
 """
@@ -114,11 +120,15 @@ def download_magnets(magnets: list, arc_name: str) -> int:
         return 1
 
     # Get correct arc folder name
-    try:
-        arc_folder = get_arc_folder_name(arc_name)
-    except (ValueError, NameError):
-        # Fallback if arc_mapping fails
-        arc_folder = f"arc-{arc_name.lower().replace(' ', '_')}"
+    # If user provided explicit folder name (contains / or starts with . or arc), use as-is
+    if '/' in arc_name or arc_name.startswith('.') or arc_name.lower().startswith('arc'):
+        arc_folder = arc_name
+    else:
+        try:
+            arc_folder = get_arc_folder_name(arc_name)
+        except (ValueError, NameError):
+            # Fallback if arc_mapping fails
+            arc_folder = f"arc-{arc_name.lower().replace(' ', '_')}"
 
     print("=" * 70)
     print(f"Magnet Downloader - {arc_name}")
