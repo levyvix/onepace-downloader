@@ -14,8 +14,9 @@ Example:
 
 import subprocess
 import sys
-import time
 from pathlib import Path
+from magnet_downloader import MagnetDownloader
+from download_subtitles import SubtitleDownloader
 
 
 def print_step(step_num: int, description: str):
@@ -25,149 +26,52 @@ def print_step(step_num: int, description: str):
     print("=" * 70)
 
 
-def wait_for_downloads(folder_name: str):
-    """Wait for downloads to complete by checking if .mkv files are stable."""
-    print(f"\n{'=' * 70}")
-    print("⏳ Waiting for episode downloads to complete...")
-    print("=" * 70)
-    print("\nMonitoring file sizes until stable...")
-    print("(Press Ctrl+C to skip waiting and continue anyway)\n")
+def flatten_video_folders(folder_name: str) -> int:
+    """
+    Detect and move .mkv files from subdirectories to the main folder.
+    Some torrents download a folder containing the videos instead of the videos directly.
 
+    Returns:
+        Number of files moved
+    """
     folder_path = Path(folder_name)
-    previous_sizes = {}
-    stable_count = 0
-    required_stable_checks = 3  # Files must be stable for 3 checks (15 seconds)
+    if not folder_path.exists():
+        return 0
 
-    try:
-        while True:
-            # Get current .mkv files and their sizes
-            mkv_files = list(folder_path.glob("*.mkv"))
+    moved_count = 0
 
-            # Check for .part files (incomplete downloads)
-            part_files = list(folder_path.glob("*.part"))
+    # Find all subdirectories (excluding 'subtitles' folder)
+    subdirs = [d for d in folder_path.iterdir() if d.is_dir() and d.name != "subtitles"]
 
-            if len(part_files) > 0:
-                print(
-                    f"\r⏳ Downloading: {len(part_files)} file(s) still in progress...",
-                    end="",
-                    flush=True,
-                )
-                stable_count = 0
-                time.sleep(5)
-                continue
+    for subdir in subdirs:
+        # Find all .mkv files in this subdirectory
+        mkv_files = list(subdir.glob("*.mkv"))
 
-            # No part files, but check if we have any mkv files yet
-            if len(mkv_files) == 0:
-                print("\r⏳ Waiting for downloads to start...", end="", flush=True)
-                stable_count = 0
-                time.sleep(5)
-                continue
+        if len(mkv_files) > 0:
+            print(f"\n📁 Found {len(mkv_files)} video(s) in subfolder: {subdir.name}")
 
-            # Get current sizes
-            current_sizes = {}
             for mkv_file in mkv_files:
-                current_sizes[mkv_file.name] = mkv_file.stat().st_size
+                target = folder_path / mkv_file.name
 
-            # Compare with previous sizes
-            if previous_sizes == current_sizes and len(current_sizes) > 0:
-                stable_count += 1
-                print(
-                    f"\r⏳ Files stable ({stable_count}/{required_stable_checks})... {len(mkv_files)} file(s) downloaded",
-                    end="",
-                    flush=True,
-                )
+                # Move the file
+                try:
+                    mkv_file.rename(target)
+                    print(f"   ✓ Moved: {mkv_file.name}")
+                    moved_count += 1
+                except Exception as e:
+                    print(f"   ✗ Error moving {mkv_file.name}: {e}")
 
-                if stable_count >= required_stable_checks:
-                    print(
-                        f"\n✓ All downloads complete! Found {len(mkv_files)} episode(s)"
-                    )
-                    break
-            else:
-                stable_count = 0
-                print(
-                    f"\r⏳ Downloading: {len(mkv_files)} file(s) found, sizes still changing...",
-                    end="",
-                    flush=True,
-                )
+            # Try to remove the empty directory
+            try:
+                if not list(subdir.iterdir()):  # Only if empty
+                    subdir.rmdir()
+                    print(f"   ✓ Removed empty folder: {subdir.name}")
+                else:
+                    print(f"   ⚠ Folder not empty, keeping: {subdir.name}")
+            except Exception as e:
+                print(f"   ⚠ Could not remove folder: {e}")
 
-            previous_sizes = current_sizes.copy()
-            time.sleep(5)  # Check every 5 seconds
-
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Skipping download wait (you pressed Ctrl+C)")
-        print("Make sure downloads are complete before watching!")
-        return
-
-    # Give a moment for file system to sync
-    time.sleep(2)
-    print()
-
-
-def run_script(script_name: str, args: list[str]) -> tuple[bool, str]:
-    """Run a Python script with uv and return success status and output."""
-    cmd = ["uv", "run"]
-
-    cmd.extend([script_name] + args)
-
-    print(f"\n→ Running: {' '.join(cmd)}\n")
-
-    try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        # Print output to user
-        if result.stdout:
-            print(result.stdout)
-        return (result.returncode == 0, result.stdout)
-    except subprocess.CalledProcessError as e:
-        print(f"\n✗ Error running {script_name}: {e}", file=sys.stderr)
-        if e.stdout:
-            print(e.stdout)
-        return (False, e.stdout if e.stdout else "")
-    except KeyboardInterrupt:
-        print("\n✗ Interrupted by user", file=sys.stderr)
-        return (False, "")
-
-
-def check_videos_exist(folder_name: str) -> bool:
-    """Check if video files already exist in the folder."""
-    folder_path = Path(folder_name)
-    if not folder_path.exists():
-        return False
-    mkv_files = list(folder_path.glob("*.mkv"))
-    return len(mkv_files) > 0
-
-
-def check_subtitles_exist(folder_name: str) -> bool:
-    """Check if subtitle files exist (either matched or unmatched)."""
-    folder_path = Path(folder_name)
-    if not folder_path.exists():
-        return False
-
-    # Check for .ass files in main folder or subtitles subfolder
-    ass_files = list(folder_path.glob("*.ass"))
-    subtitles_folder = folder_path / "subtitles"
-    if subtitles_folder.exists():
-        ass_files.extend(list(subtitles_folder.glob("*.ass")))
-
-    return len(ass_files) > 0
-
-
-def check_subtitles_matched(folder_name: str) -> bool:
-    """Check if subtitles are already matched with videos."""
-    folder_path = Path(folder_name)
-    if not folder_path.exists():
-        return False
-
-    mkv_files = list(folder_path.glob("*.mkv"))
-    if len(mkv_files) == 0:
-        return False
-
-    # Check if each video has a matching subtitle
-    for mkv_file in mkv_files:
-        ass_file = mkv_file.with_suffix(".ass")
-        if not ass_file.exists():
-            return False
-
-    return True
+    return moved_count
 
 
 def main():
@@ -192,90 +96,43 @@ def main():
     # Step 1: Download episodes
     print_step(1, "Downloading episodes from nyaa.si")
 
-    videos_existed = check_videos_exist(folder_name)
-    step1_executed = False
-
-    if videos_existed:
-        print(f"⏭️  Skipping: Video files already exist in {folder_name}/")
-        print(f"   Found {len(list(Path(folder_name).glob('*.mkv')))} .mkv files")
-    else:
-        success, output = run_script("magnet_downloader.py", [nyaa_url, folder_name])
-        if not success:
-            print("\n✗ Pipeline failed at step 1 (download episodes)")
-            sys.exit(1)
-
-        step1_executed = True
+    downloader = MagnetDownloader(nyaa_url, folder_name)
+    downloader.download()
 
     # Step 2: Download subtitles
     print_step(2, "Downloading subtitles from Google Drive")
-    if check_subtitles_exist(folder_name):
-        folder_path = Path(folder_name)
-        ass_count = len(list(folder_path.glob("*.ass")))
-        subtitles_folder = folder_path / "subtitles"
-        if subtitles_folder.exists():
-            ass_count += len(list(subtitles_folder.glob("*.ass")))
-        print("⏭️  Skipping: Subtitle files already exist")
-        print(f"   Found {ass_count} .ass files")
+    sub_downloader = SubtitleDownloader(gdrive_url, folder_name)
+    sub_downloader.download()
+
+    # Step 2.5: Flatten video folders (move videos from subdirectories)
+    print(f"\n{'=' * 70}")
+    print("🔍 Checking for videos in subdirectories...")
+    print("=" * 70)
+
+    moved_count = flatten_video_folders(folder_name)
+
+    if moved_count > 0:
+        print(f"\n✓ Moved {moved_count} video(s) to main folder")
     else:
-        success, _ = run_script("download_subtitles.py", [gdrive_url, folder_name])
-        if not success:
-            print("\n✗ Pipeline failed at step 2 (download subtitles)")
-            sys.exit(1)
+        print("\n✓ All videos are already in the main folder")
 
-    # Wait for episode downloads to complete
-    if step1_executed:
-        # We just added torrents, need to wait for them
-        wait_for_downloads(folder_name)
-    elif not check_videos_exist(folder_name):
-        # Videos don't exist yet, might still be downloading
-        print(f"\n{'=' * 70}")
-        print("✓ Checking if downloads are still in progress...")
-        print("=" * 70)
+    # Step 3: Show summary
+    print_step(3, "Download Summary")
+    folder_path = Path(folder_name)
+    mkv_files = list(folder_path.glob("*.mkv"))
+    ass_files = list(folder_path.glob("*.ass"))
 
-        folder_path = Path(folder_name)
-        if folder_path.exists():
-            # Check for incomplete downloads (.part files) or ongoing downloads
-            part_files = list(folder_path.glob("*.part"))
-            mkv_files = list(folder_path.glob("*.mkv"))
+    # Also check subtitles folder
+    subtitles_folder = folder_path / "subtitles"
+    if subtitles_folder.exists():
+        ass_files.extend(list(subtitles_folder.glob("*.ass")))
 
-            if len(part_files) > 0 or len(mkv_files) > 0:
-                print("⏳ Found files downloading or incomplete, waiting...")
-                wait_for_downloads(folder_name)
-            else:
-                print("✓ No active downloads found\n")
-        else:
-            print("✓ Folder doesn't exist yet\n")
-
-    # Step 3: Match subtitles to videos
-    print_step(3, "Matching subtitles to video filenames")
-    if check_subtitles_matched(folder_name):
-        mkv_count = len(list(Path(folder_name).glob("*.mkv")))
-        print("⏭️  Skipping: Subtitles already matched with videos")
-        print(f"   All {mkv_count} videos have matching .ass files")
-    else:
-        success, _ = run_script(
-            "match_onepace_subtitles.py", [folder_name, folder_name]
-        )
-        if not success:
-            print("\n✗ Pipeline failed at step 3 (match subtitles)")
-            sys.exit(1)
-
-    # Step 4: Verify all matched
-    print_step(4, "Verifying all videos have matching subtitles")
-    success, _ = run_script("verify_subtitles.py", [folder_name])
-    if not success:
-        print("\n✗ Pipeline failed at step 4 (verify)")
-        sys.exit(1)
+    print(f"✓ Videos downloaded: {len(mkv_files)}")
+    print(f"✓ Subtitles downloaded: {len(ass_files)}")
 
     print(f"\n{'=' * 70}")
     print("✓ PIPELINE COMPLETED SUCCESSFULLY!")
     print("=" * 70)
-    print(f"\nAll episodes and subtitles ready in: {folder_name}/")
-    print(
-        "\n🎉 Ready to watch! Your video player will automatically load the subtitles."
-    )
-    print("\n💡 Note: transmission-cli may still be running in background (seeding).")
-    print("   This is normal. Stop seeding with: killall transmission-cli")
 
 
 if __name__ == "__main__":

@@ -2,15 +2,15 @@
 
 ## Overview
 
-Simple, clean workflow for downloading One Pace episodes and matching them with subtitles.
+Simple, clean workflow for downloading One Pace episodes and subtitles.
 
 **What it does:**
 1. Downloads episodes from nyaa.si via torrent
 2. Downloads subtitles from Google Drive
-3. Automatically renames subtitles to match video filenames
-4. Verifies everything matched correctly
+3. Automatically detects and moves videos from torrent subfolders
+4. Shows summary of downloads
 
-Video players automatically load subtitles when filenames match (except extension).
+**Note:** mpv video player automatically matches subtitles using fuzzy search - no manual renaming needed!
 
 ---
 
@@ -19,19 +19,19 @@ Video players automatically load subtitles when filenames match (except extensio
 **Easiest way:** Run the entire workflow with a single command!
 
 ```bash
-uv run onepace_pipeline.py "<NYAA_URL>" "<GDRIVE_URL>" "<FOLDER_NAME>"
+uv run main.py "<NYAA_URL>" "<GDRIVE_URL>" "<FOLDER_NAME>"
 ```
 
 **Examples:**
 ```bash
 # With "arc" prefix (used exactly as-is)
-uv run onepace_pipeline.py \
+uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
   "https://drive.google.com/drive/folders/1XYZ..." \
   "arc15-jaya"
 
 # Without "arc" prefix (auto-adds "arc-")
-uv run onepace_pipeline.py \
+uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+skypiea" \
   "https://drive.google.com/drive/folders/1ABC..." \
   "skypiea"
@@ -49,17 +49,18 @@ uv run onepace_pipeline.py \
 1. ✓ Starts downloading all episodes from nyaa.si
 2. ✓ Downloads all subtitles from Google Drive
 3. ✓ Waits for episode downloads to complete (monitors transmission progress)
-4. ✓ Matches subtitles to video filenames
-5. ✓ Verifies everything matched correctly
+4. ✓ Detects and moves videos from torrent subfolders
+5. ✓ Shows download summary
 
 **Notes:**
-- The pipeline will wait for torrent downloads to finish before matching subtitles
+- The pipeline will wait for torrent downloads to finish
 - You can press Ctrl+C during the wait to skip and continue manually later
 - **Safe to re-run!** If the pipeline fails or is interrupted, just run the same command again - it will skip completed steps
+- **mpv automatically finds subtitles** using fuzzy search - no manual renaming needed!
 
 ---
 
-## Manual 4-Step Workflow (Advanced)
+## Manual Workflow (Advanced)
 
 If you prefer to run each step manually or need more control:
 
@@ -70,13 +71,12 @@ cd ~/Downloads/onepace
 uv run magnet_downloader.py "<NYAA_URL>" "<FOLDER_NAME>"
 
 # Step 2: Download subtitles (while videos download)
-uv run --with gdown download_subtitles.py "<GDRIVE_URL>" "<FOLDER_NAME>"
+uv run download_subtitles.py "<GDRIVE_URL>" "<FOLDER_NAME>"
 
-# Step 3: Match subtitles to videos
-uv run match_onepace_subtitles.py "<FOLDER_NAME>" "<FOLDER_NAME>"
+# (Wait for downloads to complete)
 
-# Step 4: Verify everything matched
-uv run verify_subtitles.py "<FOLDER_NAME>"
+# Optional: Check and organize videos from subfolders
+# The pipeline does this automatically!
 ```
 
 **Note:** Folder naming is consistent across all scripts - whatever name you use will be used everywhere.

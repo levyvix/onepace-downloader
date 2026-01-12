@@ -1,35 +1,35 @@
 # One Pace Downloader
 
-Sistema automatizado para download de episódios e legendas do One Pace com correspondência inteligente.
+Sistema automatizado para download de episódios e legendas do One Pace.
 
 ## 🎯 O que faz?
 
 1. Baixa episódios do nyaa.si via torrent
 2. Baixa legendas do Google Drive
-3. Renomeia automaticamente as legendas para corresponder aos nomes dos vídeos
-4. Verifica se tudo foi correspondido corretamente
+3. Detecta e organiza vídeos de subpastas automaticamente
+4. Mostra resumo dos downloads
 
-Quando os nomes dos arquivos correspondem, players de vídeo carregam as legendas automaticamente!
+**💡 Nota:** O mpv (player de vídeo) combina legendas automaticamente usando fuzzy search - sem necessidade de renomear arquivos!
 
 ## ⚡ Início Rápido - Pipeline com Um Comando
 
 **Forma mais fácil:** Execute todo o workflow com um único comando!
 
 ```bash
-uv run onepace_pipeline.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
+uv run main.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
 ```
 
 ### Exemplos
 
 ```bash
 # Com prefixo "arc" (usado exatamente como fornecido)
-uv run onepace_pipeline.py \
+uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
   "https://drive.google.com/drive/folders/1XYZ..." \
   "arc15-jaya"
 
 # Sem prefixo "arc" (adiciona "arc-" automaticamente)
-uv run onepace_pipeline.py \
+uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+skypiea" \
   "https://drive.google.com/drive/folders/1ABC..." \
   "skypiea"
@@ -56,8 +56,8 @@ Acesse [One Pace PT-BR](https://onepaceptbr.github.io/) para encontrar:
 1. ✓ Inicia o download de todos os episódios do nyaa.si
 2. ✓ Baixa todas as legendas do Google Drive
 3. ✓ Aguarda a conclusão dos downloads dos episódios (monitora progresso do transmission)
-4. ✓ Corresponde legendas aos nomes dos arquivos de vídeo
-5. ✓ Verifica se tudo foi correspondido corretamente
+4. ✓ Detecta e move vídeos de subpastas para a pasta principal
+5. ✓ Mostra resumo dos downloads (vídeos + legendas)
 
 ### Recursos
 
@@ -98,7 +98,7 @@ Não precisa instalar dependências Python! O `uv` gerencia tudo automaticamente
 cd onepace-downloader
 
 # Um único comando - workflow completo
-uv run onepace_pipeline.py \
+uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
   "https://drive.google.com/drive/folders/1XYZ..." \
   "arc15-jaya"
@@ -126,17 +126,30 @@ Monitoring file sizes until stable...
 ⏳ Files stable (3/3)... 25 file(s) downloaded
 ✓ All downloads complete! Found 25 episode(s)
 
-STEP 3: Matching subtitles to video filenames
-✓ Matched and renamed 25 subtitle files
+======================================================================
+🔍 Checking for videos in subdirectories...
+======================================================================
 
-STEP 4: Verifying all videos have matching subtitles
-Result: 25/25 videos have matching subtitles
+✓ All videos are already in the main folder
+
+======================================================================
+STEP 3: Download Summary
+======================================================================
+✓ Videos downloaded: 25
+✓ Subtitles downloaded: 25
+
+💡 Note: mpv will automatically match subtitles using fuzzy search
+
 ======================================================================
 ✓ PIPELINE COMPLETED SUCCESSFULLY!
+======================================================================
+
+All episodes and subtitles ready in: arc15-jaya/
+
 🎉 Ready to watch! Your video player will automatically load the subtitles.
 ```
 
-## 🔧 Workflow Manual (4 Etapas)
+## 🔧 Workflow Manual (Avançado)
 
 Se preferir executar cada etapa manualmente:
 
@@ -147,11 +160,10 @@ uv run magnet_downloader.py "<URL_NYAA>" "<NOME_PASTA>"
 # Etapa 2: Baixar legendas (enquanto os vídeos baixam)
 uv run download_subtitles.py "<URL_GDRIVE>" "<NOME_PASTA>"
 
-# Etapa 3: Corresponder legendas aos vídeos
-uv run match_onepace_subtitles.py "<NOME_PASTA>" "<NOME_PASTA>"
+# (Aguarde downloads terminarem)
 
-# Etapa 4: Verificar se tudo correspondeu
-uv run verify_subtitles.py "<NOME_PASTA>"
+# Opcional: Mover vídeos de subpastas (se necessário)
+# O pipeline faz isso automaticamente!
 ```
 
 ## 🔄 Executar Novamente Após Falhas
@@ -160,42 +172,40 @@ O pipeline é **idempotente** - seguro executar várias vezes!
 
 ```bash
 # Primeira execução - falha durante etapa 2
-uv run onepace_pipeline.py "<URL1>" "<URL2>" "arc15-jaya"
+uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
 # STEP 1: ✓ Episódios baixando
 # STEP 2: ✗ Erro de rede!
 
 # Segunda execução - retoma de onde parou
-uv run onepace_pipeline.py "<URL1>" "<URL2>" "arc15-jaya"
+uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
 # STEP 1: ⏭️ Pulando - 25 arquivos .mkv já existem
 # STEP 2: ✓ Baixa legendas com sucesso
-# STEP 3: ✓ Corresponde legendas
-# STEP 4: ✓ Verifica
+# Organiza vídeos...
+# STEP 3: ✓ Mostra resumo
 ```
 
 ## 🗂️ Estrutura de Pastas
 
-**Antes:**
+**Após download completo:**
 ```
 arc15-jaya/
 ├── [One Pace][218-220] Jaya 01 [1080p][HASH].mkv
 ├── [One Pace][221-224] Jaya 02 [1080p][HASH].mkv
-├── Jaya 01.ass
-└── Jaya 02.ass
+├── subtitles/
+│   ├── Jaya 01.ass
+│   └── Jaya 02.ass
 ```
 
-**Depois (correspondido):**
-```
-arc15-jaya/
-├── [One Pace][218-220] Jaya 01 [1080p][HASH].mkv
-├── [One Pace][218-220] Jaya 01 [1080p][HASH].ass  ← Correspondido!
-├── [One Pace][221-224] Jaya 02 [1080p][HASH].mkv
-└── [One Pace][221-224] Jaya 02 [1080p][HASH].ass  ← Correspondido!
-```
+**💡 Nota:** O mpv automaticamente encontra e carrega as legendas mesmo que os nomes não sejam idênticos!
 
 ## 🛠️ Scripts Disponíveis
 
-### `onepace_pipeline.py` ⭐ (main.py)
-Pipeline completo - executa todas as 4 etapas automaticamente.
+### `main.py` (ou `onepace_pipeline.py`) ⭐
+Pipeline completo - executa todo o workflow automaticamente:
+- Baixa episódios e legendas
+- Aguarda conclusão dos downloads
+- Organiza vídeos de subpastas
+- Mostra resumo
 
 ### `magnet_downloader.py`
 Extrai links magnet do nyaa.si e baixa via transmission-cli.
@@ -203,17 +213,16 @@ Extrai links magnet do nyaa.si e baixa via transmission-cli.
 ### `download_subtitles.py`
 Baixa arquivos de legendas de uma pasta do Google Drive.
 
-### `match_onepace_subtitles.py`
-Renomeia legendas para corresponder exatamente aos nomes dos vídeos.
-
-### `verify_subtitles.py`
-Verifica se cada arquivo de vídeo tem uma legenda correspondente.
-
 ## ❓ Troubleshooting
+
+### Vídeos em subpastas?
+- **Solução automática:** O pipeline detecta e move automaticamente
+- **Saída esperada:** `📁 Found X video(s) in subfolder: ...`
+- **Manual:** `mv "pasta-torrent"/*.mkv . && rmdir "pasta-torrent"`
 
 ### Quer pular a espera pelos downloads?
 - **Durante a espera:** Pressione `Ctrl+C` para pular e continuar depois
-- **Correspondência manual depois:** Execute `uv run match_onepace_subtitles.py "<pasta>" "<pasta>"` após os downloads terminarem
+- **Continuar depois:** Execute o pipeline novamente - ele pula etapas concluídas
 
 ### Pipeline diz "files stable" mas downloads ainda ativos?
 - **Isso é normal!** O pipeline detecta quando os downloads estão **completos** (tamanhos estáveis)
@@ -228,6 +237,11 @@ Verifica se cada arquivo de vídeo tem uma legenda correspondente.
 ### Nenhum arquivo de legenda baixado?
 - **Verifique:** Link do Google Drive está acessível no navegador
 - **Correção:** Verifique se a pasta está compartilhada "Qualquer pessoa com o link"
+
+### Legendas não aparecem no mpv?
+- **Causa:** mpv pode estar configurado para não carregar automaticamente
+- **Solução 1:** Pressione `j` no mpv para alternar entre faixas de legendas
+- **Solução 2:** Adicione `sub-auto=fuzzy` no `~/.config/mpv/mpv.conf`
 
 ## 📄 Licença
 
