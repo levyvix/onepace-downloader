@@ -44,6 +44,13 @@ uv run onepace_pipeline.py \
    - Se o nome começa com "arc", usa exatamente como fornecido
    - Caso contrário, adiciona prefixo "arc-" automaticamente (ex: "jaya" → "arc-jaya")
 
+### 📥 Onde encontrar os links?
+
+Acesse [One Pace PT-BR](https://onepaceptbr.github.io/) para encontrar:
+- Links de torrent (nyaa.si) para cada arco
+- Links do Google Drive com as legendas em português
+- Informações sobre quais arcos estão disponíveis
+
 ### O que faz automaticamente
 
 1. ✓ Inicia o download de todos os episódios do nyaa.si
@@ -229,7 +236,8 @@ MIT
 ## 🙏 Créditos
 
 - [One Pace](https://onepace.net/) - Projeto de edição de One Piece
-- Legendas da comunidade One Pace
+- [One Pace PT-BR](https://onepaceptbr.github.io/) - Fonte dos downloads e legendas em português
+- Comunidade One Pace Brasil
 
 ## ⚠️ Aviso
 
