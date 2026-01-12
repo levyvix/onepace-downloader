@@ -49,11 +49,23 @@ def get_arc_folder_name(arc_name: str) -> str:
 
 
 class MagnetDownloader:
+    """Magnet Downloader class
+
+    Attributes:
+        - torrent_url: Nyaa.si torrent page URL
+        - arc_folder: Arc folder name
+
+    Methods:
+        download() -> None: Download all magnet links
+
+
+    """
+
     def __init__(self, torrent_url: str, arc_folder: str):
         self.torrent_url = torrent_url
         self.arc_folder = arc_folder
 
-    def download_magnets(self, magnets: list, arc_folder: str) -> int:
+    def _download_magnets(self, magnets: list, arc_folder: str) -> int:
         """
         Download magnets using transmission-cli.
 
@@ -105,7 +117,7 @@ class MagnetDownloader:
 
         return 0 if started > 0 else 1
 
-    def extract_magnets(self, url: str) -> list:
+    def _extract_magnets(self, url: str) -> list:
         """
         Extract magnet links from nyaa.si URL.
 
@@ -158,14 +170,14 @@ class MagnetDownloader:
 
     def download(self):
         print(f"📥 Fetching: {self.torrent_url}")
-        magnets = self.extract_magnets(self.torrent_url)
+        magnets = self._extract_magnets(self.torrent_url)
 
         if not magnets:
             print("❌ No magnet links found on the page", file=sys.stderr)
 
         print(f"🔍 Extracted {len(magnets)} magnet link(s)")
 
-        ok = self.download_magnets(magnets, self.arc_folder)
+        ok = self._download_magnets(magnets, self.arc_folder)
         if not ok:
             raise Exception("Error downlading episodes.")
 

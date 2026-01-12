@@ -12,7 +12,6 @@ Example:
         "arc15-jaya"
 """
 
-import subprocess
 import sys
 from pathlib import Path
 from magnet_downloader import MagnetDownloader
