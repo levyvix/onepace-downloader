@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-"""
-Download One Pace subtitles from Google Drive.
+"""Download One Pace subtitles from Google Drive.
 
 Usage:
     uv run --with gdown download_subtitles.py <google_drive_url> <arc_name_or_folder>
@@ -20,18 +18,19 @@ Examples:
     uv run --with gdown download_subtitles.py \
         "https://drive.google.com/drive/folders/..." \
         "arc10-little_garden/[One Pace][115-129] Little Garden [480p]"
+
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
-def get_arc_folder_name(name):
+def get_arc_folder_name(name) -> str:
     return name
 
 
-def main():
+def main() -> int:
     if len(sys.argv) != 3:
         print(__doc__)
         sys.exit(1)
@@ -56,7 +55,7 @@ def main():
 
     # Create subtitles subfolder
     subtitles_folder = arc_path / "subtitles"
-    subtitles_folder.mkdir(exist_ok=True)
+    subtitles_folder.mkdir(exist_ok=True, parents=True)
 
     print(f"Downloading subtitles to: {subtitles_folder}")
     print(f"From: {gdrive_url}")
@@ -68,12 +67,13 @@ def main():
             [
                 "gdown",
                 "--folder",
-                gdrive_url,
                 "-O",
                 str(subtitles_folder),
+                gdrive_url,
                 "--remaining-ok",
             ],
             check=True,
+            # shell=True,
         )
         print()
         print("=" * 70)
@@ -88,7 +88,8 @@ def main():
         print("=" * 70)
     except subprocess.CalledProcessError as e:
         print(f"Error downloading from Google Drive: {e}")
-        sys.exit(1)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -1,13 +1,11 @@
-#!/usr/bin/env python3
-"""
-Match and rename One Pace subtitle files to match video filenames.
+r"""Match and rename One Pace subtitle files to match video filenames.
 
 Usage:
     python3 match_onepace_subtitles.py <video_dir> <subtitle_dir>
 
 Example:
-    uv run  match_onepace_subtitles.py \\
-        "arc10-little_garden/[One Pace][115-129] Little Garden [480p]" \\
+    uv run  match_onepace_subtitles.py \
+        "arc10-little_garden/[One Pace][115-129] Little Garden [480p]" \
         "arc10-little_garden/[One Pace][115-129] Little Garden [480p]/drive-download-20251220T150238Z-1-001"
 
 The script will:
@@ -15,16 +13,16 @@ The script will:
 2. Find all .ass subtitle files in the subtitle directory
 3. Match them by episode number
 4. Rename subtitles to match video filenames (keeping .ass extension)
+
 """
 
-import sys
 import re
+import sys
 from pathlib import Path
 
 
-def extract_episode_number(filename, arc_name):
-    """
-    Extract episode number from filename.
+def extract_episode_number(filename: str, arc_name: str) -> str | None:
+    """Extract episode number from filename.
 
     Handles various patterns:
     - "Arc Name 01.ass" -> "01"
@@ -45,9 +43,8 @@ def extract_episode_number(filename, arc_name):
     return None
 
 
-def guess_arc_name(video_files):
-    """
-    Guess the arc name from video filenames.
+def guess_arc_name(video_files: list[Path]) -> str:
+    """Guess the arc name from video filenames.
 
     Expects pattern like: [One Pace][XXX-XXX] Arc Name XX [480p][HASH].mkv
     """
@@ -150,7 +147,9 @@ def main():
     if matched_count == len(videos):
         print("✓ All videos matched with subtitles!")
     print(
-        f"Done! Successfully matched {matched_count}/{len(videos)} videos with subtitles"
+        f"Done! Successfully matched {matched_count}/{
+            len(videos)
+        } videos with subtitles"
     )
     print("=" * 70)
 

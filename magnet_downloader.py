@@ -32,7 +32,6 @@ The script:
 import subprocess
 import re
 import sys
-import os
 from pathlib import Path
 from html import unescape
 
