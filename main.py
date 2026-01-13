@@ -73,6 +73,18 @@ def flatten_video_folders(folder_name: str) -> int:
     return moved_count
 
 
+def download_episodes(folder_name, nyaa_url) -> int:
+    downloader = MagnetDownloader(nyaa_url, folder_name)
+    how_many = downloader.download()
+    return how_many
+
+
+def download_subtitles(folder_name, gdrive_url) -> int:
+    sub_downloader = SubtitleDownloader(gdrive_url, folder_name)
+    how_many = sub_downloader.download()
+    return how_many
+
+
 def main():
     if len(sys.argv) != 4:
         print("Usage: uv run onepace_pipeline.py <nyaa_url> <gdrive_url> <folder_name>")
@@ -95,13 +107,15 @@ def main():
     # Step 1: Download episodes
     print_step(1, "Downloading episodes from nyaa.si")
 
-    downloader = MagnetDownloader(nyaa_url, folder_name)
-    downloader.download()
+    count_episodes = download_episodes(folder_name, nyaa_url)
+    if count_episodes > 0:
+        print(f"{count_episodes} episodes downloaded!")
 
     # Step 2: Download subtitles
     print_step(2, "Downloading subtitles from Google Drive")
-    sub_downloader = SubtitleDownloader(gdrive_url, folder_name)
-    sub_downloader.download()
+    count_subtitles = download_subtitles(folder_name, gdrive_url)
+    if count_subtitles > 0:
+        print(f"{count_subtitles} subtitles downloaded!")
 
     # Step 2.5: Flatten video folders (move videos from subdirectories)
     print(f"\n{'=' * 70}")

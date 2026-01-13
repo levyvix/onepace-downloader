@@ -168,7 +168,7 @@ class MagnetDownloader:
         # Remove duplicates
         return list(set(magnets))
 
-    def download(self):
+    def download(self) -> int:
         print(f"📥 Fetching: {self.torrent_url}")
         magnets = self._extract_magnets(self.torrent_url)
 
@@ -180,6 +180,8 @@ class MagnetDownloader:
         ok = self._download_magnets(magnets, self.arc_folder)
         if not ok:
             raise Exception("Error downlading episodes.")
+        else:
+            return len(magnets)
 
 
 if __name__ == "__main__":

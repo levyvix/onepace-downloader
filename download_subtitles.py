@@ -21,6 +21,7 @@ Examples:
 
 """
 
+from re import sub
 import subprocess
 import sys
 from pathlib import Path
@@ -71,7 +72,7 @@ class SubtitleDownloader:
             print(f"Error downloading from Google Drive: {e}")
             raise
 
-    def download(self):
+    def download(self) -> int:
         arc_path = self._setup_path()
 
         subtitles_folder = self._setup_subtitle_folder(arc_path)
@@ -80,6 +81,7 @@ class SubtitleDownloader:
         print(f"From: {self.gdrive_url}")
 
         self._download_from_gdrive(subtitles_folder)
+        return len(list(subtitles_folder.glob("*.ass")))
 
 
 if __name__ == "__main__":
