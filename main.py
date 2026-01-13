@@ -85,7 +85,7 @@ def download_subtitles(folder_name, gdrive_url) -> int:
     return how_many
 
 
-def main():
+def get_parameters():
     if len(sys.argv) != 4:
         print("Usage: uv run onepace_pipeline.py <nyaa_url> <gdrive_url> <folder_name>")
         print("\nExample:")
@@ -98,6 +98,23 @@ def main():
     nyaa_url = sys.argv[1]
     gdrive_url = sys.argv[2]
     folder_name = sys.argv[3]
+    return folder_name, gdrive_url, nyaa_url
+
+
+def get_summary(folder_name):
+    folder_path = Path(folder_name)
+    mkv_files = list(folder_path.glob("*.mkv"))
+    ass_files = list(folder_path.glob("*.ass"))
+
+    # Also check subtitles folder
+    subtitles_folder = folder_path / "subtitles"
+    if subtitles_folder.exists():
+        ass_files.extend(list(subtitles_folder.glob("*.ass")))
+    return ass_files, mkv_files
+
+
+def main():
+    folder_name, gdrive_url, nyaa_url = get_parameters()
 
     print("\n🎬 One Pace Download Pipeline")
     print(f"\nNyaa URL: {nyaa_url}")
@@ -131,14 +148,7 @@ def main():
 
     # Step 3: Show summary
     print_step(3, "Download Summary")
-    folder_path = Path(folder_name)
-    mkv_files = list(folder_path.glob("*.mkv"))
-    ass_files = list(folder_path.glob("*.ass"))
-
-    # Also check subtitles folder
-    subtitles_folder = folder_path / "subtitles"
-    if subtitles_folder.exists():
-        ass_files.extend(list(subtitles_folder.glob("*.ass")))
+    ass_files, mkv_files = get_summary(folder_name)
 
     print(f"✓ Videos downloaded: {len(mkv_files)}")
     print(f"✓ Subtitles downloaded: {len(ass_files)}")
