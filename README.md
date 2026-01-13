@@ -1,192 +1,78 @@
 # One Pace Downloader
 
-Sistema automatizado para download de episódios e legendas do One Pace.
+Pipeline automatizado para baixar episódios e legendas do One Pace. Baixe, organize e assista tudo em um único comando.
 
-## 🎯 O que faz?
-
-1. Baixa episódios do nyaa.si via torrent
-2. Baixa legendas do Google Drive
-3. Detecta e organiza vídeos de subpastas automaticamente
-4. Mostra resumo dos downloads
-
-**💡 Nota:** O mpv (player de vídeo) combina legendas automaticamente usando fuzzy search - sem necessidade de renomear arquivos!
-
-## ⚡ Início Rápido - Pipeline com Um Comando
-
-**Forma mais fácil:** Execute todo o workflow com um único comando!
+## Início Rápido
 
 ```bash
 uv run main.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
 ```
 
-### Exemplos
-
+**Exemplo:**
 ```bash
-# Com prefixo "arc" (usado exatamente como fornecido)
 uv run main.py \
   "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
   "https://drive.google.com/drive/folders/1XYZ..." \
   "arc15-jaya"
-
-# Sem prefixo "arc" (adiciona "arc-" automaticamente)
-uv run main.py \
-  "https://nyaa.si/?f=0&c=0_0&q=one+pace+skypiea" \
-  "https://drive.google.com/drive/folders/1ABC..." \
-  "skypiea"
-# Cria: arc-skypiea/
 ```
 
-### O que você precisa fornecer
+Encontre os links em [One Pace PT-BR](https://onepaceptbr.github.io/)
 
-1. **URL do Nyaa.si** - Resultados de busca ou página de torrent único
-2. **URL do Google Drive** - Link da pasta de legendas
-3. **Nome da pasta** - Nome exato da pasta que você quer usar (ex: "arc15-jaya", "skypiea", "water7")
-   - Se o nome começa com "arc", usa exatamente como fornecido
-   - Caso contrário, adiciona prefixo "arc-" automaticamente (ex: "jaya" → "arc-jaya")
+## Recursos
 
-### 📥 Onde encontrar os links?
+- **Pipeline em um comando** - Baixa episódios, legendas e organiza automaticamente
+- **Downloads paralelos** - Episódios e legendas baixam simultaneamente
+- **Espera inteligente** - Detecta quando os downloads terminaram monitorando tamanho de arquivos
+- **Auto-organização** - Move vídeos de subpastas para a pasta principal
+- **Idempotente** - Seguro executar novamente após falhas—pula etapas concluídas
+- **Progresso em tempo real** - Mostra o que está acontecendo em cada etapa
+- **Nomes flexíveis** - Funciona com ou sem prefixo "arc-" no nome da pasta
+- **Funciona com seeding** - Não aguarda transmission sair completamente
+- **Ctrl+C amigável** - Pule a espera e continue manualmente depois
+- **Emparelhamento de legendas** - Renomeia legendas para corresponder aos vídeos automaticamente
 
-Acesse [One Pace PT-BR](https://onepaceptbr.github.io/) para encontrar:
-- Links de torrent (nyaa.si) para cada arco
-- Links do Google Drive com as legendas em português
-- Informações sobre quais arcos estão disponíveis
+## Como Funciona
 
-### O que faz automaticamente
+1. **Extrai magnets** dos resultados de busca do nyaa.si
+2. **Inicia downloads** usando transmission-cli para os episódios
+3. **Baixa legendas** do Google Drive em paralelo
+4. **Monitora conclusão** observando estabilização de tamanhos de arquivo
+5. **Organiza estrutura** - move vídeos de subpastas se necessário
+6. **Emparelha legendas** - renomeia legendas para corresponder aos nomes dos vídeos
+7. **Mostra resumo** - exibe total de episódios e legendas baixadas
 
-1. ✓ Inicia o download de todos os episódios do nyaa.si
-2. ✓ Baixa todas as legendas do Google Drive
-3. ✓ Aguarda a conclusão dos downloads dos episódios (monitora progresso do transmission)
-4. ✓ Detecta e move vídeos de subpastas para a pasta principal
-5. ✓ Mostra resumo dos downloads (vídeos + legendas)
+## Pré-requisitos
 
-### Recursos
+Instale essas dependências do sistema:
 
-- **Idempotente** - Seguro executar novamente após falhas, pula etapas concluídas
-- **Downloads paralelos** - Baixa episódios e legendas ao mesmo tempo (economiza tempo!)
-- **Detecção inteligente** - Aguarda até que os tamanhos dos arquivos estejam estáveis
-- **Funciona com seeding** - Não espera o transmission-cli sair
-- **Progresso em tempo real** - Mostra o progresso de cada etapa
-- **Ctrl+C durante a espera** - Pula a espera e continua manualmente depois
-
-## 📋 Pré-requisitos
-
+**Arch Linux:**
 ```bash
-# Arch Linux
 sudo pacman -S transmission-cli python uv
+```
 
-# Debian/Ubuntu
+**Debian/Ubuntu:**
+```bash
 sudo apt install transmission-cli python3
 pip install uv
+```
 
-# macOS
+**macOS:**
+```bash
 brew install transmission-cli uv
 ```
 
-## 📦 Instalação
+## Instalação
 
 ```bash
-# Clone o repositório
 git clone https://github.com/levyvix/onepace-downloader.git
 cd onepace-downloader
 ```
 
-Não precisa instalar dependências Python! O `uv` gerencia tudo automaticamente.
+Sem dependências Python para instalar—`uv` gerencia tudo automaticamente.
 
-## 🎬 Exemplo Completo: Baixar Arco Jaya
+## Estrutura de Pastas
 
-```bash
-cd onepace-downloader
-
-# Um único comando - workflow completo
-uv run main.py \
-  "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
-  "https://drive.google.com/drive/folders/1XYZ..." \
-  "arc15-jaya"
-```
-
-**Saída:**
-```
-======================================================================
-STEP 1: Downloading episodes from nyaa.si
-✓ Created: arc15-jaya/
-✓ Starting downloads...
-
-STEP 2: Downloading subtitles from Google Drive
-✓ Downloaded 25 subtitle files
-
-======================================================================
-⏳ Waiting for episode downloads to complete...
-======================================================================
-Monitoring file sizes until stable...
-(Press Ctrl+C to skip waiting and continue anyway)
-
-⏳ Downloading: 25 file(s) found, sizes still changing...
-⏳ Files stable (1/3)... 25 file(s) downloaded
-⏳ Files stable (2/3)... 25 file(s) downloaded
-⏳ Files stable (3/3)... 25 file(s) downloaded
-✓ All downloads complete! Found 25 episode(s)
-
-======================================================================
-🔍 Checking for videos in subdirectories...
-======================================================================
-
-✓ All videos are already in the main folder
-
-======================================================================
-STEP 3: Download Summary
-======================================================================
-✓ Videos downloaded: 25
-✓ Subtitles downloaded: 25
-
-💡 Note: mpv will automatically match subtitles using fuzzy search
-
-======================================================================
-✓ PIPELINE COMPLETED SUCCESSFULLY!
-======================================================================
-
-All episodes and subtitles ready in: arc15-jaya/
-
-🎉 Ready to watch! Your video player will automatically load the subtitles.
-```
-
-## 🔧 Workflow Manual (Avançado)
-
-Se preferir executar cada etapa manualmente:
-
-```bash
-# Etapa 1: Baixar episódios
-uv run magnet_downloader.py "<URL_NYAA>" "<NOME_PASTA>"
-
-# Etapa 2: Baixar legendas (enquanto os vídeos baixam)
-uv run download_subtitles.py "<URL_GDRIVE>" "<NOME_PASTA>"
-
-# (Aguarde downloads terminarem)
-
-# Opcional: Mover vídeos de subpastas (se necessário)
-# O pipeline faz isso automaticamente!
-```
-
-## 🔄 Executar Novamente Após Falhas
-
-O pipeline é **idempotente** - seguro executar várias vezes!
-
-```bash
-# Primeira execução - falha durante etapa 2
-uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
-# STEP 1: ✓ Episódios baixando
-# STEP 2: ✗ Erro de rede!
-
-# Segunda execução - retoma de onde parou
-uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
-# STEP 1: ⏭️ Pulando - 25 arquivos .mkv já existem
-# STEP 2: ✓ Baixa legendas com sucesso
-# Organiza vídeos...
-# STEP 3: ✓ Mostra resumo
-```
-
-## 🗂️ Estrutura de Pastas
-
-**Após download completo:**
+Após baixar um arco:
 ```
 arc15-jaya/
 ├── [One Pace][218-220] Jaya 01 [1080p][HASH].mkv
@@ -196,63 +82,271 @@ arc15-jaya/
 │   └── Jaya 02.ass
 ```
 
-**💡 Nota:** O mpv automaticamente encontra e carrega as legendas mesmo que os nomes não sejam idênticos!
+## Scripts Disponíveis
 
-## 🛠️ Scripts Disponíveis
+### `main.py` - Pipeline Completo (Recomendado) ⭐
 
-### `main.py` (ou `onepace_pipeline.py`) ⭐
-Pipeline completo - executa todo o workflow automaticamente:
-- Baixa episódios e legendas
-- Aguarda conclusão dos downloads
-- Organiza vídeos de subpastas
-- Mostra resumo
+Executa todo o workflow em um comando. Baixa episódios, legendas, organiza e mostra resumo.
 
-### `magnet_downloader.py`
-Extrai links magnet do nyaa.si e baixa via transmission-cli.
+**Nota importante:** Este script NÃO faz emparelhamento de legendas automaticamente. Use-o para baixar, depois rode o `match_onepace_subtitles.py`.
 
-### `download_subtitles.py`
+```bash
+uv run main.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
+```
+
+### `magnet_downloader.py` - Baixar Apenas Episódios
+
+Extrai links magnet dos resultados de busca do nyaa.si e inicia downloads via transmission-cli.
+
+```bash
+uv run magnet_downloader.py "<URL_NYAA>" "<NOME_PASTA>"
+```
+
+### `download_subtitles.py` - Baixar Apenas Legendas
+
 Baixa arquivos de legendas de uma pasta do Google Drive.
 
-## ❓ Troubleshooting
+```bash
+uv run download_subtitles.py "<URL_GDRIVE>" "<NOME_PASTA>"
+```
+
+### `match_onepace_subtitles.py` - Emparelhar Legendas com Vídeos ⭐
+
+Renomeia automaticamente arquivos de legenda para corresponder aos nomes dos vídeos, baseado no número do episódio.
+
+```bash
+uv run match_onepace_subtitles.py "<DIR_VÍDEOS>" "<DIR_LEGENDAS>"
+```
+
+**Exemplo:**
+```bash
+uv run match_onepace_subtitles.py \
+  "arc15-jaya" \
+  "arc15-jaya/subtitles"
+```
+
+**O que faz:**
+1. Encontra todos os arquivos .mkv na pasta de vídeos
+2. Encontra todos os arquivos .ass na pasta de legendas
+3. Extrai número do episódio de ambos
+4. Renomeia legendas para corresponder aos vídeos (ex: "Jaya 01.ass" → "[One Pace][218-220] Jaya 01 [1080p][HASH].ass")
+
+### `verify_subtitles.py` - Verificar Emparelhamento
+
+Verifica se todos os vídeos têm legendas correspondentes.
+
+```bash
+uv run verify_subtitles.py "<NOME_PASTA>"
+```
+
+**Exemplo:**
+```bash
+uv run verify_subtitles.py "arc15-jaya"
+```
+
+Saída:
+```
+✓ [One Pace][218-220] Jaya 01 [1080p][HASH].mkv
+  → [One Pace][218-220] Jaya 01 [1080p][HASH].ass
+
+✗ [One Pace][221-224] Jaya 02 [1080p][HASH].mkv
+  → MISSING: [One Pace][221-224] Jaya 02 [1080p][HASH].ass
+
+Result: 1/2 videos have matching subtitles
+```
+
+## Fluxo Completo: Passo a Passo
+
+### Opção 1: Pipeline Automático (Recomendado)
+
+```bash
+# Baixa tudo automaticamente
+uv run main.py \
+  "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
+  "https://drive.google.com/drive/folders/1XYZ..." \
+  "arc15-jaya"
+
+# Depois emparelha as legendas
+uv run match_onepace_subtitles.py "arc15-jaya" "arc15-jaya/subtitles"
+
+# Opcional: Verifica se tudo está correto
+uv run verify_subtitles.py "arc15-jaya"
+```
+
+### Opção 2: Controle Manual
+
+```bash
+# Passo 1: Baixa episódios (inicia transmission)
+uv run magnet_downloader.py \
+  "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
+  "arc15-jaya"
+
+# Passo 2: Baixa legendas em paralelo
+uv run download_subtitles.py \
+  "https://drive.google.com/drive/folders/1XYZ..." \
+  "arc15-jaya"
+
+# Aguarde downloads terminarem (verifique com ls -lh arc15-jaya/)
+
+# Passo 3: Emparelha legendas
+uv run match_onepace_subtitles.py "arc15-jaya" "arc15-jaya/subtitles"
+
+# Passo 4: Verifica resultado
+uv run verify_subtitles.py "arc15-jaya"
+```
+
+## Recuperação Após Falhas
+
+O pipeline é **idempotente**—seguro executar várias vezes:
+
+```bash
+# Primeira execução falha no meio
+uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
+
+# Segunda execução retoma de onde parou
+# Pula etapas concluídas automaticamente
+uv run main.py "<URL1>" "<URL2>" "arc15-jaya"
+
+# Emparelhamento pode ser executado novamente sem problemas
+uv run match_onepace_subtitles.py "arc15-jaya" "arc15-jaya/subtitles"
+```
+
+## Solução de Problemas
 
 ### Vídeos em subpastas?
-- **Solução automática:** O pipeline detecta e move automaticamente
-- **Saída esperada:** `📁 Found X video(s) in subfolder: ...`
-- **Manual:** `mv "pasta-torrent"/*.mkv . && rmdir "pasta-torrent"`
+
+O pipeline detecta e move automaticamente. Procure por:
+```
+📁 Found X video(s) in subfolder: folder_name
+```
+
+Correção manual se necessário:
+```bash
+mv "subpasta"/*.mkv . && rmdir "subpasta"
+```
 
 ### Quer pular a espera pelos downloads?
-- **Durante a espera:** Pressione `Ctrl+C` para pular e continuar depois
-- **Continuar depois:** Execute o pipeline novamente - ele pula etapas concluídas
 
-### Pipeline diz "files stable" mas downloads ainda ativos?
-- **Isso é normal!** O pipeline detecta quando os downloads estão **completos** (tamanhos estáveis)
-- transmission-cli continua em background para **seeding** - isso é esperado
-- Você pode parar o seeding depois: `killall transmission-cli`
+Pressione `Ctrl+C` durante a espera e execute o pipeline novamente depois—pula etapas concluídas.
 
-### Downloads não estão iniciando?
-- **Verifique:** `ps aux | grep transmission-cli` para ver downloads ativos
-- **Verifique arquivos:** `ls -lh <pasta>/` para ver o que foi baixado
-- **Correção:** Certifique-se que transmission-cli está instalado
+### Arquivo diz "stable" mas transmission ainda ativo?
 
-### Nenhum arquivo de legenda baixado?
-- **Verifique:** Link do Google Drive está acessível no navegador
-- **Correção:** Verifique se a pasta está compartilhada "Qualquer pessoa com o link"
+Normal! O pipeline detecta quando downloads estão **completos** (tamanhos estáveis). transmission continua rodando para **seeding**, que é esperado. Pare com:
+
+```bash
+killall transmission-cli
+```
+
+### Nenhum download iniciou?
+
+Verifique downloads ativos:
+```bash
+ps aux | grep transmission-cli
+ls -lh arc15-jaya/
+```
+
+Certifique-se que transmission-cli está instalado.
+
+### Nenhuma legenda baixada?
+
+O link do Google Drive deve estar acessível publicamente ("Qualquer pessoa com o link"). Verifique se abre no navegador.
+
+### Emparelhamento não encontrou legendas?
+
+As legendas devem estar em um diretório separado. Verifique:
+
+```bash
+# Verifique se as legendas estão lá
+ls -la arc15-jaya/subtitles/
+
+# O arquivo de legenda deve ter o número do episódio
+# Exemplos: "Jaya 01.ass", "01.ass", "Episode 1.ass"
+```
+
+Se as legendas estão em um local diferente, especifique o caminho correto:
+```bash
+uv run match_onepace_subtitles.py "arc15-jaya" "caminho/para/legendas"
+```
 
 ### Legendas não aparecem no mpv?
-- **Causa:** mpv pode estar configurado para não carregar automaticamente
-- **Solução 1:** Pressione `j` no mpv para alternar entre faixas de legendas
-- **Solução 2:** Adicione `sub-auto=fuzzy` no `~/.config/mpv/mpv.conf`
 
-## 📄 Licença
+Se as legendas estão nomeadas corretamente mas mpv não as carrega:
+
+1. Pressione `j` no mpv para alternar entre faixas de legenda
+2. Ou adicione isso a `~/.config/mpv/mpv.conf`:
+   ```
+   sub-auto=fuzzy
+   ```
+
+Se o emparelhamento funcionou corretamente, as legendas devem carregar automaticamente.
+
+### Verifique o emparelhamento antes de assistir
+
+Sempre rode antes de assistir:
+```bash
+uv run verify_subtitles.py "arc15-jaya"
+```
+
+Saída esperada:
+```
+✓ video1.mkv
+  → video1.ass
+✓ video2.mkv
+  → video2.ass
+
+Result: 25/25 videos have matching subtitles
+✓ All videos have matching subtitle files!
+```
+
+## Estrutura de Pasta Recomendada
+
+Para manter tudo organizado:
+
+```
+~
+├── Videos/onepace/
+│   ├── arc15-jaya/
+│   │   ├── [One Pace][218-220] Jaya 01.mkv
+│   │   ├── [One Pace][218-220] Jaya 01.ass
+│   │   ├── [One Pace][221-224] Jaya 02.mkv
+│   │   ├── [One Pace][221-224] Jaya 02.ass
+│   │   └── subtitles/  (pasta original do download)
+│   │
+│   ├── arc14-skypiea/
+│   └── arc13-jaya/
+```
+
+## Exemplo Completo: Baixar Arco Jaya
+
+```bash
+cd ~/Videos/onepace
+
+# 1. Download automático (episódios + legendas)
+uv run main.py \
+  "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \
+  "https://drive.google.com/drive/folders/1abcdef..." \
+  "arc15-jaya"
+
+# 2. Emparelhar legendas
+uv run match_onepace_subtitles.py "arc15-jaya" "arc15-jaya/subtitles"
+
+# 3. Verificar resultado
+uv run verify_subtitles.py "arc15-jaya"
+
+# 4. Assistir!
+mpv arc15-jaya/
+```
+
+## Licença
 
 MIT
 
-## 🙏 Créditos
+## Créditos
 
 - [One Pace](https://onepace.net/) - Projeto de edição de One Piece
 - [One Pace PT-BR](https://onepaceptbr.github.io/) - Fonte dos downloads e legendas em português
 - Comunidade One Pace Brasil
 
-## ⚠️ Aviso
+## Aviso
 
 Este projeto é apenas para uso educacional. Respeite os direitos autorais e use apenas com conteúdo que você tem permissão para baixar.
