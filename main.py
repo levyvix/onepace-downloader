@@ -18,16 +18,19 @@ from magnet_downloader import MagnetDownloader
 from download_subtitles import SubtitleDownloader
 
 
-def print_step(step_num: int, description: str):
+def print_separator(n: int = 70) -> None:
+    print("=" * n)
+
+
+def print_step(step_num: int, description: str) -> None:
     """Print formatted step header."""
-    print(f"\n{'=' * 70}")
+    print_separator()
     print(f"STEP {step_num}: {description}")
-    print("=" * 70)
+    print_separator()
 
 
 def flatten_video_folders(folder_name: str) -> int:
-    """
-    Detect and move .mkv files from subdirectories to the main folder.
+    """Detect and move .mkv files from subdirectories to the main folder.
     Some torrents download a folder containing the videos instead of the videos directly.
 
     Returns:
@@ -73,26 +76,9 @@ def flatten_video_folders(folder_name: str) -> int:
     return moved_count
 
 
-def download_episodes(folder_name, nyaa_url) -> int:
-    downloader = MagnetDownloader(nyaa_url, folder_name)
-    how_many = downloader.download()
-    return how_many
-
-
-def download_subtitles(folder_name, gdrive_url) -> int:
-    sub_downloader = SubtitleDownloader(gdrive_url, folder_name)
-    how_many = sub_downloader.download()
-    return how_many
-
-
-def get_parameters():
+def get_parameters() -> tuple[str, str, str]:
     if len(sys.argv) != 4:
-        print("Usage: uv run onepace_pipeline.py <nyaa_url> <gdrive_url> <folder_name>")
-        print("\nExample:")
-        print("  uv run onepace_pipeline.py \\")
-        print('    "https://nyaa.si/?f=0&c=0_0&q=one+pace+jaya" \\')
-        print('    "https://drive.google.com/drive/folders/1XYZ..." \\')
-        print('    "arc15-jaya"')
+        print(__doc__)
         sys.exit(1)
 
     nyaa_url = sys.argv[1]
@@ -101,15 +87,11 @@ def get_parameters():
     return folder_name, gdrive_url, nyaa_url
 
 
-def get_summary(folder_name):
+def get_summary(folder_name: str) -> tuple[list[Path], list[Path]]:
     folder_path = Path(folder_name)
     mkv_files = list(folder_path.glob("*.mkv"))
-    ass_files = list(folder_path.glob("*.ass"))
+    ass_files = list(folder_path.rglob("*.ass"))
 
-    # Also check subtitles folder
-    subtitles_folder = folder_path / "subtitles"
-    if subtitles_folder.exists():
-        ass_files.extend(list(subtitles_folder.glob("*.ass")))
     return ass_files, mkv_files
 
 
@@ -124,20 +106,20 @@ def main():
     # Step 1: Download episodes
     print_step(1, "Downloading episodes from nyaa.si")
 
-    count_episodes = download_episodes(folder_name, nyaa_url)
+    count_episodes = MagnetDownloader(nyaa_url, folder_name).download()
     if count_episodes > 0:
         print(f"{count_episodes} episodes downloaded!")
 
     # Step 2: Download subtitles
     print_step(2, "Downloading subtitles from Google Drive")
-    count_subtitles = download_subtitles(folder_name, gdrive_url)
+    count_subtitles = SubtitleDownloader(gdrive_url, folder_name).download()
     if count_subtitles > 0:
         print(f"{count_subtitles} subtitles downloaded!")
 
     # Step 2.5: Flatten video folders (move videos from subdirectories)
-    print(f"\n{'=' * 70}")
+    print_separator()
     print("🔍 Checking for videos in subdirectories...")
-    print("=" * 70)
+    print_separator()
 
     moved_count = flatten_video_folders(folder_name)
 
@@ -153,9 +135,9 @@ def main():
     print(f"✓ Videos downloaded: {len(mkv_files)}")
     print(f"✓ Subtitles downloaded: {len(ass_files)}")
 
-    print(f"\n{'=' * 70}")
+    print_separator()
     print("✓ PIPELINE COMPLETED SUCCESSFULLY!")
-    print("=" * 70)
+    print_separator()
 
 
 if __name__ == "__main__":

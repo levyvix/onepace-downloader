@@ -21,7 +21,6 @@ Examples:
 
 """
 
-from re import sub
 import subprocess
 import sys
 from pathlib import Path
@@ -36,41 +35,30 @@ class SubtitleDownloader:
 
     def _setup_path(self):
         """Setup arc path object and create folder if not exists"""
-        arc_path = None
         arc_path = Path(self.arc_folder)
-        if not arc_path.exists():
-            arc_path.mkdir(parents=True, exist_ok=True)
+        arc_path.mkdir(parents=True, exist_ok=True)
         return arc_path
 
     def _setup_subtitle_folder(self, arc_path: Path):
         """Setup subtiles/ folder inside arc path, and create folder if not exists"""
-        subtitles_folder = None
         subtitles_folder = arc_path / "subtitles"
-        if not subtitles_folder.exists():
-            subtitles_folder.mkdir(exist_ok=True, parents=True)
+        subtitles_folder.mkdir(exist_ok=True, parents=True)
         return subtitles_folder
 
     def _download_from_gdrive(self, subtitles_folder):
-        try:
-            subprocess.run(
-                [
-                    "gdown",
-                    "--folder",
-                    "-O",
-                    str(subtitles_folder),
-                    self.gdrive_url,
-                    "--remaining-ok",
-                ],
-                check=True,
-            )
-            print()
-            print("=" * 70)
-            print("✓ Download complete!")
-            print(f"✓ Subtitles saved to: {subtitles_folder}")
-            print("=" * 70)
-        except subprocess.CalledProcessError as e:
-            print(f"Error downloading from Google Drive: {e}")
-            raise
+        subprocess.run(
+            [
+                "gdown",
+                "--folder",
+                "-O",
+                str(subtitles_folder),
+                self.gdrive_url,
+                "--remaining-ok",
+            ],
+            check=True,
+        )
+        print("✓ Download complete!")
+        print(f"✓ Subtitles saved to: {subtitles_folder}")
 
     def download(self) -> int:
         arc_path = self._setup_path()
@@ -89,4 +77,4 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(1)
 
-    SubtitleDownloader(sys.argv[0], sys.argv[1]).download()
+    SubtitleDownloader(sys.argv[1], sys.argv[2]).download()

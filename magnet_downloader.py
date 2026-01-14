@@ -42,12 +42,6 @@ from pathlib import Path
 from html import unescape
 
 
-# Try to import arc_mapping for auto-detection
-def get_arc_folder_name(arc_name: str) -> str:
-    """Fallback if arc_mapping not available"""
-    return f"arc-{arc_name.lower().replace(' ', '_')}"
-
-
 class MagnetDownloader:
     """Magnet Downloader class
 
@@ -57,15 +51,13 @@ class MagnetDownloader:
 
     Methods:
         download() -> None: Download all magnet links
-
-
     """
 
     def __init__(self, torrent_url: str, arc_folder: str):
         self.torrent_url = torrent_url
         self.arc_folder = arc_folder
 
-    def _download_magnets(self, magnets: list, arc_folder: str) -> int:
+    def _download_magnets(self, magnets: list[str], arc_folder: str) -> None:
         """
         Download magnets using transmission-cli.
 
@@ -73,25 +65,17 @@ class MagnetDownloader:
             magnets: List of magnet links
             arc_folder: Arc folder name
 
-        Returns:
-            0 on success, 1 on error
         """
 
         # Get correct arc folder name
         # If user provided explicit folder name (contains / or starts with . or arc), use as-is
 
-        print("=" * 70)
         print(f"Found {len(magnets)} magnet links")
         print(f"Arc folder: {arc_folder}")
-        print("=" * 70)
 
         # Create save directory
         save_path = Path(arc_folder).absolute()
-        try:
-            save_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            print(f"❌ Error creating folder: {e}", file=sys.stderr)
-            return 1
+        save_path.mkdir(parents=True, exist_ok=True)
 
         # Start all downloads asynchronously (non-blocking)
         started = 0
@@ -105,25 +89,24 @@ class MagnetDownloader:
                 )
                 print(f"[{i:2d}/{len(magnets)}] ✓ Started", end="\r")
                 started += 1
-            except Exception as e:
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 print(f"[{i:2d}/{len(magnets)}] ✗ Error: {e}")
+                continue
 
-        print()
-        print("=" * 70)
         print(f"✓ Started {started}/{len(magnets)} downloads in background!")
         print(f"✓ Download folder: {save_path}")
-        print("=" * 70)
-        print()
 
-        return 0 if started > 0 else 1
-
-    def _extract_magnets(self, url: str) -> list:
+    def _extract_magnets(self, url: str) -> list[str]:
         """
         Extract magnet links from nyaa.si URL.
 
         Returns:
             List of magnet links, empty list if none found
         """
+        EXCLUDED_PATTERNS = [
+            "Alternate",  # skip alternate
+            "G-8",  # skip fillers
+        ]
         try:
             result = subprocess.run(
                 ["curl", "-s", url, "--compressed"],
@@ -142,7 +125,7 @@ class MagnetDownloader:
         except Exception:
             return []
 
-        magnets = []
+        magnets: list[str] = []
 
         # Pattern 1: Search results page (table rows)
         entries = re.findall(
@@ -155,7 +138,8 @@ class MagnetDownloader:
             magnet_match = re.search(r'href=["\']([^"\']*magnet:[^"\']*)["\']', entry)
             if magnet_match:
                 magnet = unescape(magnet_match.group(1))
-                if "Alternate" not in entry and "G-8" not in entry:
+                # if "Alternate" not in entry and "G-8" not in entry:
+                if not any(pat in entry for pat in EXCLUDED_PATTERNS):
                     magnets.append(magnet)
 
         # Pattern 2: Single torrent view page (direct magnet links)
@@ -169,19 +153,23 @@ class MagnetDownloader:
         return list(set(magnets))
 
     def download(self) -> int:
+        """Download all magnet links
+
+        Returns:
+           Number of magnet links
+
+        """
         print(f"📥 Fetching: {self.torrent_url}")
         magnets = self._extract_magnets(self.torrent_url)
 
         if not magnets:
             print("❌ No magnet links found on the page", file=sys.stderr)
+            raise Exception("No magnet links found on the page")
 
         print(f"🔍 Extracted {len(magnets)} magnet link(s)")
 
-        ok = self._download_magnets(magnets, self.arc_folder)
-        if not ok:
-            raise Exception("Error downlading episodes.")
-        else:
-            return len(magnets)
+        self._download_magnets(magnets, self.arc_folder)
+        return len(magnets)
 
 
 if __name__ == "__main__":
@@ -189,4 +177,4 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
 
-    MagnetDownloader(sys.argv[0], sys.argv[1]).download()
+    MagnetDownloader(sys.argv[1], sys.argv[2]).download()
