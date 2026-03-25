@@ -38,6 +38,7 @@ The script:
 import subprocess
 import re
 import sys
+import time
 from pathlib import Path
 from html import unescape
 
@@ -59,16 +60,13 @@ class MagnetDownloader:
 
     def _download_magnets(self, magnets: list[str], arc_folder: str) -> None:
         """
-        Download magnets using transmission-cli.
+        Download magnets using transmission-remote (RPC to running daemon).
 
         Args:
             magnets: List of magnet links
             arc_folder: Arc folder name
 
         """
-
-        # Get correct arc folder name
-        # If user provided explicit folder name (contains / or starts with . or arc), use as-is
 
         print(f"Found {len(magnets)} magnet links")
         print(f"Arc folder: {arc_folder}")
@@ -77,24 +75,54 @@ class MagnetDownloader:
         save_path = Path(arc_folder).absolute()
         save_path.mkdir(parents=True, exist_ok=True)
 
-        # Start all downloads asynchronously (non-blocking)
-        started = 0
-        for i, magnet in enumerate(magnets, 1):
+        # Check if transmission daemon is running, if not start it
+        daemon_running = subprocess.run(
+            ["transmission-remote", "-l"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        ).returncode == 0
+
+        if not daemon_running:
+            print("📡 Starting transmission daemon...")
             try:
-                # Start transmission-cli in background (non-blocking)
                 subprocess.Popen(
-                    ["transmission-cli", "-w", str(save_path), magnet],
+                    ["transmission-daemon"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                print(f"[{i:2d}/{len(magnets)}] ✓ Started", end="\r")
-                started += 1
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                time.sleep(2)  # Wait for daemon to start
+            except FileNotFoundError:
+                print("✗ transmission-daemon not found")
+                print("  Install with: sudo pacman -S transmission-cli")
+                raise
+
+        # Add all magnets to running transmission daemon via RPC
+        started = 0
+        for i, magnet in enumerate(magnets, 1):
+            try:
+                # Use transmission-remote to add torrent
+                result = subprocess.run(
+                    ["transmission-remote", "-a", magnet, "-w", str(save_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode == 0:
+                    print(f"[{i:2d}/{len(magnets)}] ✓ Added to queue", end="\r")
+                    started += 1
+                else:
+                    print(f"[{i:2d}/{len(magnets)}] ✗ {result.stderr}")
+            except FileNotFoundError:
+                print(f"[{i:2d}/{len(magnets)}] ✗ transmission-remote not found")
+                print("  Install with: sudo pacman -S transmission-cli")
+                raise
+            except Exception as e:
                 print(f"[{i:2d}/{len(magnets)}] ✗ Error: {e}")
                 continue
 
-        print(f"✓ Started {started}/{len(magnets)} downloads in background!")
+        print(f"✓ Added {started}/{len(magnets)} torrents to queue!")
         print(f"✓ Download folder: {save_path}")
+        print(f"📡 Transmission daemon running - downloads continue in background")
 
     def _extract_magnets(self, url: str) -> list[str]:
         """
