@@ -15,6 +15,7 @@ Requires system packages:
 
 import re
 import sys
+import time
 import subprocess
 from pyfzf.pyfzf import FzfPrompt
 
@@ -157,6 +158,26 @@ def run_fzf(items: list[str], prompt: str = "Select: ") -> str | None:
         sys.exit(0)
 
 
+def wait_for_videos(folder_name: str, timeout: int = 30) -> bool:
+    """Wait for video files to appear in folder (with metadata).
+
+    Sometimes videos take a moment to fully appear in the filesystem.
+    Returns True if videos found, False if timeout.
+    """
+    folder_path = Path(folder_name)
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        videos = list(folder_path.rglob("*.mkv"))
+        if videos:
+            # Found videos, wait a bit more for metadata to settle
+            time.sleep(1)
+            return True
+        time.sleep(0.5)
+
+    return False
+
+
 def match_subtitles(folder_name: str) -> int:
     """Match and rename subtitles to video filenames.
 
@@ -166,6 +187,10 @@ def match_subtitles(folder_name: str) -> int:
     subtitle_dir = folder_path / "subtitles"
 
     if not subtitle_dir.exists():
+        return 0
+
+    # Wait for videos to appear
+    if not wait_for_videos(folder_name, timeout=30):
         return 0
 
     # Get all video files (recursively, in case they're in subfolders)
