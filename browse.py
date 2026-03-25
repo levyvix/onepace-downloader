@@ -16,6 +16,7 @@ Requires system packages:
 import re
 import sys
 import time
+import shutil
 import subprocess
 from pyfzf.pyfzf import FzfPrompt
 
@@ -238,6 +239,24 @@ def run_pipeline(arc: dict, folder_name: str) -> None:
     print(f"🚀 Starting pipeline for: {arc['name']}")
     print(f"   Folder: {folder_name}")
     print_separator()
+
+    # Pre-flight: Clean up any corrupted partial downloads
+    folder_path = Path(folder_name)
+    if folder_path.exists():
+        # Remove subdirectories that might contain corrupted torrent files
+        for subdir in folder_path.iterdir():
+            if subdir.is_dir() and subdir.name not in ("subtitles",):
+                # Check if this looks like a corrupted torrent folder (has incomplete .mkv files)
+                mkv_files = list(subdir.glob("*.mkv"))
+                if mkv_files:
+                    # Check file sizes - if very small or incomplete, it's likely corrupted
+                    total_size = sum(f.stat().st_size for f in mkv_files)
+                    if total_size < 100_000_000:  # Less than 100MB = incomplete
+                        try:
+                            shutil.rmtree(subdir)
+                            print(f"🧹 Cleaned up incomplete download folder: {subdir.name}")
+                        except Exception as e:
+                            print(f"⚠ Could not clean: {e}")
 
     # Step 1: Download episodes (if nyaa available)
     if nyaa_url:
