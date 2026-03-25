@@ -168,8 +168,8 @@ def match_subtitles(folder_name: str) -> int:
     if not subtitle_dir.exists():
         return 0
 
-    # Get all video and subtitle files
-    videos = sorted([f for f in folder_path.glob("*.mkv")])
+    # Get all video files (recursively, in case they're in subfolders)
+    videos = sorted([f for f in folder_path.rglob("*.mkv")])
     subtitles = sorted([f for f in subtitle_dir.glob("*.ass")])
 
     if not videos or not subtitles:
@@ -192,7 +192,8 @@ def match_subtitles(folder_name: str) -> int:
         if ep_num and ep_num in subtitle_map:
             old_sub = subtitle_map[ep_num]
             new_sub_name = video.name.replace(".mkv", ".ass")
-            new_sub_path = folder_path / new_sub_name
+            # Put subtitle in the same directory as the video
+            new_sub_path = video.parent / new_sub_name
 
             try:
                 old_sub.rename(new_sub_path)
