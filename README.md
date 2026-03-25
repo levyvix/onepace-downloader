@@ -9,10 +9,8 @@ Pipeline automatizado para baixar episódios e legendas do One Pace. Baixe, orga
 Selecione a saga e o arco via menu interativo:
 
 ```bash
-uv run one.py
+uv run browse.py
 ```
-
-**Atalho:** `uv run one.py` é equivalente a `uv run browse.py`
 
 O script scrapo automaticamente https://onepaceptbr.github.io/, oferece seleção com fzf e executa o pipeline.
 

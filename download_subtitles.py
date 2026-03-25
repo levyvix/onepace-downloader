@@ -52,17 +52,34 @@ class SubtitleDownloader:
         return subtitles_folder
 
     def _download_from_gdrive(self, subtitles_folder):
-        subprocess.run(
-            [
-                "gdown",
-                "--folder",
-                "-O",
-                str(subtitles_folder),
-                self.gdrive_url,
-                "--remaining-ok",
-            ],
-            check=True,
-        )
+        # Detect if URL is a folder or individual file
+        is_folder = "/folders/" in self.gdrive_url or "/drive/folders/" in self.gdrive_url
+
+        if is_folder:
+            # Download entire folder
+            subprocess.run(
+                [
+                    "gdown",
+                    "--folder",
+                    "-O",
+                    str(subtitles_folder),
+                    self.gdrive_url,
+                    "--remaining-ok",
+                ],
+                check=True,
+            )
+        else:
+            # Download individual file
+            subprocess.run(
+                [
+                    "gdown",
+                    "-O",
+                    str(subtitles_folder),
+                    self.gdrive_url,
+                ],
+                check=True,
+            )
+
         print("✓ Download complete!")
         print(f"✓ Subtitles saved to: {subtitles_folder}")
 
