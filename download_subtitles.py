@@ -21,10 +21,28 @@ Examples:
 
 """
 
+import re
 import subprocess
 import sys
 import zipfile
 from pathlib import Path
+
+
+def convert_gdrive_url(url: str) -> str:
+    """Convert Google Drive URL formats to gdown-compatible format.
+
+    Converts:
+    - /file/d/ID/view?... → /uc?id=ID
+    - /drive/folders/ID → /drive/folders/ID (unchanged, folder format)
+    """
+    # Extract file ID from /file/d/ID/view format
+    file_match = re.search(r'/file/d/([a-zA-Z0-9-_]+)', url)
+    if file_match:
+        file_id = file_match.group(1)
+        return f"https://drive.google.com/uc?id={file_id}"
+
+    # Already in correct format or folder format - return as-is
+    return url
 
 
 class SubtitleDownloader:
@@ -52,8 +70,11 @@ class SubtitleDownloader:
         return subtitles_folder
 
     def _download_from_gdrive(self, subtitles_folder):
+        # Convert URL to gdown-compatible format
+        gdrive_url = convert_gdrive_url(self.gdrive_url)
+
         # Detect if URL is a folder or individual file
-        is_folder = "/folders/" in self.gdrive_url or "/drive/folders/" in self.gdrive_url
+        is_folder = "/folders/" in gdrive_url or "/drive/folders/" in gdrive_url
 
         if is_folder:
             # Download entire folder
@@ -63,7 +84,7 @@ class SubtitleDownloader:
                     "--folder",
                     "-O",
                     str(subtitles_folder),
-                    self.gdrive_url,
+                    gdrive_url,
                     "--remaining-ok",
                 ],
                 check=True,
@@ -75,7 +96,7 @@ class SubtitleDownloader:
                     "gdown",
                     "-O",
                     str(subtitles_folder),
-                    self.gdrive_url,
+                    gdrive_url,
                 ],
                 check=True,
             )
