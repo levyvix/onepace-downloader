@@ -94,17 +94,27 @@ def parse_arcs(html: str) -> list[dict]:
             }
         )
 
-    # Format 2: Direct link (nyaa only, no popup)
-    direct_pattern = r'<a\s+href="(https://nyaa\.si/[^"]+)"\s+class="arc"[^>]*>.*?<h3>([^<]+)</h3>'
+    # Format 2: Direct link (nyaa or gdrive, no popup)
+    direct_pattern = r'<a\s+href="([^"]+)"\s+class="arc"[^>]*>.*?<h3>([^<]+)</h3>'
     direct_matches = re.findall(direct_pattern, html, re.DOTALL)
-    for nyaa_url, name in direct_matches:
-        arcs.append(
-            {
-                "name": name.strip(),
-                "nyaa_url": nyaa_url.strip(),
-                "gdrive_url": None,
-            }
-        )
+    for url, name in direct_matches:
+        # Classify the URL
+        if "nyaa.si" in url:
+            arcs.append(
+                {
+                    "name": name.strip(),
+                    "nyaa_url": url.strip(),
+                    "gdrive_url": None,
+                }
+            )
+        elif "drive.google.com" in url:
+            arcs.append(
+                {
+                    "name": name.strip(),
+                    "nyaa_url": None,
+                    "gdrive_url": url.strip(),
+                }
+            )
 
     # Filter out arcs without any link
     arcs = [arc for arc in arcs if arc["nyaa_url"] or arc["gdrive_url"]]
