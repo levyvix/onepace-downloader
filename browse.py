@@ -331,8 +331,8 @@ def main() -> None:
         print(f"  Drive: {selected_arc['gdrive_url'][:60]}...")
     print_separator()
 
-    confirm = input("Continue with download? (y/n): ").strip().lower()
-    if confirm != "y":
+    confirm = input("Continue with download? (Y/n): ").strip().lower()
+    if confirm == "n":
         print("✗ Cancelled")
         sys.exit(0)
 
