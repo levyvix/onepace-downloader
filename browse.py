@@ -70,6 +70,14 @@ def parse_sagas(html: str) -> list[dict]:
     return sagas
 
 
+def extract_arc_number(arc_name: str) -> float:
+    """Extract arc number for sorting. Returns 999 if no number found."""
+    match = re.search(r"Arco\s+([\d.]+)", arc_name)
+    if match:
+        return float(match.group(1))
+    return 999.0
+
+
 def parse_arcs(html: str) -> list[dict]:
     """Extract arcs from saga page. Handles two formats: popup and direct link."""
     arcs = []
@@ -100,6 +108,9 @@ def parse_arcs(html: str) -> list[dict]:
 
     # Filter out arcs without any link
     arcs = [arc for arc in arcs if arc["nyaa_url"] or arc["gdrive_url"]]
+
+    # Sort arcs by number
+    arcs.sort(key=lambda arc: extract_arc_number(arc["name"]))
 
     return arcs
 
