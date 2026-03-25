@@ -18,6 +18,7 @@ import sys
 import subprocess
 from pyfzf.pyfzf import FzfPrompt
 
+from pathlib import Path
 from main import (
     MagnetDownloader,
     SubtitleDownloader,
@@ -26,6 +27,7 @@ from main import (
     print_step,
     print_separator,
 )
+from match_onepace_subtitles import extract_episode_number, guess_arc_name
 
 SITE_BASE = "https://onepaceptbr.github.io"
 
@@ -155,6 +157,52 @@ def run_fzf(items: list[str], prompt: str = "Select: ") -> str | None:
         sys.exit(0)
 
 
+def match_subtitles(folder_name: str) -> int:
+    """Match and rename subtitles to video filenames.
+
+    Returns number of successfully matched subtitles.
+    """
+    folder_path = Path(folder_name)
+    subtitle_dir = folder_path / "subtitles"
+
+    if not subtitle_dir.exists():
+        return 0
+
+    # Get all video and subtitle files
+    videos = sorted([f for f in folder_path.glob("*.mkv")])
+    subtitles = sorted([f for f in subtitle_dir.glob("*.ass")])
+
+    if not videos or not subtitles:
+        return 0
+
+    # Guess arc name from videos
+    arc_name = guess_arc_name(videos)
+
+    # Build subtitle map by episode number
+    subtitle_map: dict[str, Path] = {}
+    for sub in subtitles:
+        ep_num = extract_episode_number(sub.name, arc_name or "")
+        if ep_num:
+            subtitle_map[ep_num] = sub
+
+    # Match and rename
+    matched_count = 0
+    for video in videos:
+        ep_num = extract_episode_number(video.name, arc_name or "")
+        if ep_num and ep_num in subtitle_map:
+            old_sub = subtitle_map[ep_num]
+            new_sub_name = video.name.replace(".mkv", ".ass")
+            new_sub_path = folder_path / new_sub_name
+
+            try:
+                old_sub.rename(new_sub_path)
+                matched_count += 1
+            except Exception:
+                pass  # Silent fail, continue
+
+    return matched_count
+
+
 def run_pipeline(arc: dict, folder_name: str) -> None:
     """Execute the download pipeline with selected arc data."""
     nyaa_url = arc["nyaa_url"]
@@ -197,6 +245,17 @@ def run_pipeline(arc: dict, folder_name: str) -> None:
     else:
         print("\n✓ All videos are already in the main folder")
 
+    # Step 2.75: Match subtitles to videos
+    if gdrive_url:
+        print_separator()
+        print("🎬 Matching subtitles to videos...")
+        print_separator()
+        matched_count = match_subtitles(folder_name)
+        if matched_count > 0:
+            print(f"✓ Matched {matched_count} subtitle(s) to video(s)")
+        else:
+            print("ℹ Could not match subtitles automatically")
+
     # Step 3: Show summary
     print_step(3, "Download Summary")
     ass_files, mkv_files = get_summary(folder_name)
@@ -207,10 +266,9 @@ def run_pipeline(arc: dict, folder_name: str) -> None:
     print("✓ PIPELINE COMPLETED SUCCESSFULLY!")
     print_separator()
 
-    if mkv_files and ass_files and len(mkv_files) != len(ass_files):
-        print("\n⚠ Atenção: número de vídeos e legendas não confere!")
-        print("  Execute `uv run match_onepace_subtitles.py` para emparelhar:")
-        print(f"  uv run match_onepace_subtitles.py {folder_name} {folder_name}/subtitles")
+    if mkv_files and ass_files:
+        print("\n✓ Videos and subtitles are ready!")
+        print("   You can now watch with: mpv " + folder_name + "/")
 
 
 def main() -> None:
