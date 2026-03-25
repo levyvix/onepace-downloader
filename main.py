@@ -105,7 +105,6 @@ def main():
 
     # Step 1: Download episodes
     print_step(1, "Downloading episodes from nyaa.si")
-
     count_episodes = MagnetDownloader(nyaa_url, folder_name).download()
     if count_episodes > 0:
         print(f"{count_episodes} episodes downloaded!")
