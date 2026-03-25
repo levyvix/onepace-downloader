@@ -23,6 +23,7 @@ Examples:
 
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 
@@ -32,6 +33,11 @@ class SubtitleDownloader:
     def __init__(self, gdrive_url: str, arc_folder: str) -> None:
         self.gdrive_url = gdrive_url
         self.arc_folder = arc_folder
+        self.zip_password = None
+
+    def set_password(self, password: str) -> None:
+        """Set password for encrypted ZIP files."""
+        self.zip_password = password
 
     def _setup_path(self):
         """Setup arc path object and create folder if not exists"""
@@ -60,6 +66,43 @@ class SubtitleDownloader:
         print("✓ Download complete!")
         print(f"✓ Subtitles saved to: {subtitles_folder}")
 
+    def _extract_zips(self, folder: Path) -> int:
+        """Extract any ZIP files found in folder and return count of extracted files."""
+        zip_files = list(folder.glob("*.zip"))
+        if not zip_files:
+            return 0
+
+        print(f"\n📦 Found {len(zip_files)} ZIP file(s), extracting...")
+        extracted_count = 0
+
+        for zip_file in zip_files:
+            try:
+                # Convert password to bytes if provided
+                pwd = None
+                if self.zip_password:
+                    pwd = self.zip_password.encode("utf-8")
+
+                with zipfile.ZipFile(zip_file, "r") as z:
+                    z.extractall(folder, pwd=pwd)
+                    print(f"   ✓ Extracted: {zip_file.name}")
+                    # Count extracted files
+                    extracted_count += len(z.namelist())
+
+                # Remove the zip after extraction
+                zip_file.unlink()
+                print(f"   ✓ Removed: {zip_file.name}")
+            except zipfile.BadZipFile:
+                print(f"   ✗ Bad ZIP file: {zip_file.name}")
+            except RuntimeError as e:
+                if "Bad password" in str(e):
+                    print(f"   ✗ Wrong password for {zip_file.name}")
+                else:
+                    print(f"   ✗ Error extracting {zip_file.name}: {e}")
+            except Exception as e:
+                print(f"   ✗ Error extracting {zip_file.name}: {e}")
+
+        return extracted_count
+
     def download(self) -> int:
         arc_path = self._setup_path()
 
@@ -69,6 +112,10 @@ class SubtitleDownloader:
         print(f"From: {self.gdrive_url}")
 
         self._download_from_gdrive(subtitles_folder)
+
+        # Extract any ZIP files
+        self._extract_zips(subtitles_folder)
+
         return len(list(subtitles_folder.glob("*.ass")))
 
 

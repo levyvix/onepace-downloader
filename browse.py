@@ -78,6 +78,14 @@ def extract_arc_number(arc_name: str) -> float:
     return 999.0
 
 
+def extract_password(html: str) -> str | None:
+    """Extract ZIP password from page if available."""
+    match = re.search(r"<strong>Senha[^:]*:</strong>\s*([^<]+)", html, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
 def parse_arcs(html: str) -> list[dict]:
     """Extract arcs from saga page. Handles two formats: popup and direct link."""
     arcs = []
@@ -251,7 +259,7 @@ def match_subtitles(folder_name: str) -> int:
     return matched_count
 
 
-def run_pipeline(arc: dict, folder_name: str) -> None:
+def run_pipeline(arc: dict, folder_name: str, zip_password: str | None = None) -> None:
     """Execute the download pipeline with selected arc data."""
     nyaa_url = arc["nyaa_url"]
     gdrive_url = arc["gdrive_url"]
@@ -293,7 +301,11 @@ def run_pipeline(arc: dict, folder_name: str) -> None:
     # Step 2: Download subtitles (if gdrive available)
     if gdrive_url:
         print_step(2, "Downloading subtitles from Google Drive")
-        count_subtitles = SubtitleDownloader(gdrive_url, folder_name).download()
+        downloader = SubtitleDownloader(gdrive_url, folder_name)
+        # Pass password if available (for encrypted ZIPs)
+        if zip_password:
+            downloader.set_password(zip_password)
+        count_subtitles = downloader.download()
         if count_subtitles > 0:
             print(f"✓ {count_subtitles} subtitles downloaded!")
         else:
@@ -363,6 +375,7 @@ def main() -> None:
     print("🔄 Loading arcs...")
     html = fetch_html(selected_saga["url"])
     arcs = parse_arcs(html)
+    zip_password = extract_password(html)  # Extract ZIP password if available
 
     if not arcs:
         print("✗ No arcs found in this saga")
@@ -404,7 +417,7 @@ def main() -> None:
 
     # Step 4: Run pipeline
     print()
-    run_pipeline(selected_arc, folder_name)
+    run_pipeline(selected_arc, folder_name, zip_password)
 
 
 if __name__ == "__main__":
