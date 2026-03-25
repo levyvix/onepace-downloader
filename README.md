@@ -4,6 +4,20 @@ Pipeline automatizado para baixar episódios e legendas do One Pace. Baixe, orga
 
 ## Início Rápido
 
+### Opção 1: Browser Interativo (Recomendado) ⭐
+
+Selecione a saga e o arco via menu interativo:
+
+```bash
+uv run browse.py
+```
+
+O script scrapo automaticamente https://onepaceptbr.github.io/, oferece seleção com fzf e executa o pipeline.
+
+### Opção 2: Linha de Comando (Manual)
+
+Fornece as URLs manualmente:
+
 ```bash
 uv run main.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
 ```
@@ -15,8 +29,6 @@ uv run main.py \
   "https://drive.google.com/drive/folders/1XYZ..." \
   "arc15-jaya"
 ```
-
-Encontre os links em [One Pace PT-BR](https://onepaceptbr.github.io/)
 
 ## Recursos
 
@@ -47,19 +59,21 @@ Instale essas dependências do sistema:
 
 **Arch Linux:**
 ```bash
-sudo pacman -S transmission-cli python uv
+sudo pacman -S transmission-cli fzf python uv
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install transmission-cli python3
+sudo apt install transmission-cli fzf python3
 pip install uv
 ```
 
 **macOS:**
 ```bash
-brew install transmission-cli uv
+brew install transmission-cli fzf uv
 ```
+
+**Nota:** `fzf` é obrigatório apenas para o `browse.py`. O `main.py` funciona sem ele.
 
 ## Instalação
 
@@ -84,7 +98,27 @@ arc15-jaya/
 
 ## Scripts Disponíveis
 
-### `main.py` - Pipeline Completo (Recomendado) ⭐
+### `browse.py` - Browser Interativo com fzf (Recomendado) ⭐
+
+O jeito mais fácil de baixar! Scrapo https://onepaceptbr.github.io/ e oferece seleção interativa para saga e arco.
+
+```bash
+uv run browse.py
+```
+
+**Fluxo:**
+1. Seleciona a saga (East Blue, Alabasta, etc)
+2. Seleciona o arco (Arco 8, 9, 10, etc)
+3. Automaticamente gera o nome da pasta correto
+4. Mostra confirmação dos links
+5. Executa o pipeline completo
+
+**Status dos arcos:**
+- `[nyaa+gdrive]` - Episódios + legendas disponíveis
+- `[apenas nyaa]` - Apenas episódios disponíveis
+- `[apenas gdrive]` - Apenas legendas disponíveis
+
+### `main.py` - Pipeline Completo (Manual)
 
 Executa todo o workflow em um comando. Baixa episódios, legendas, organiza e mostra resumo.
 
