@@ -126,7 +126,7 @@ wheels = [
 [[package]]
 name = "onepace"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "gdown" },
     { name = "pyfzf" },
