@@ -27,6 +27,12 @@ import sys
 import zipfile
 from pathlib import Path
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
+
 
 def convert_gdrive_url(url: str) -> str:
     """Convert Google Drive URL formats to gdown-compatible format.
@@ -69,28 +75,137 @@ class SubtitleDownloader:
         subtitles_folder.mkdir(exist_ok=True, parents=True)
         return subtitles_folder
 
-    def _download_from_gdrive(self, subtitles_folder):
+    def _extract_file_ids_from_folder(self, folder_url: str):
+        """Extract file IDs from Google Drive folder page using regex."""
+        if not requests:
+            return None
+
+        try:
+            print("📂 Listing files from Google Drive folder...")
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+
+            response = requests.get(folder_url, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            # Extract file IDs and names using regex patterns from Google Drive's page
+            files = []
+
+            # Pattern: "id":"FILE_ID","name":"filename.ass"
+            for match in re.finditer(
+                r'"id":"([a-zA-Z0-9_-]{28,})","[^"]*"name":"([^"]+\.ass)"',
+                response.text,
+            ):
+                file_id = match.group(1)
+                filename = match.group(2)
+                files.append((file_id, filename))
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_files = []
+            for f_id, f_name in files:
+                if f_id not in seen:
+                    seen.add(f_id)
+                    unique_files.append((f_id, f_name))
+
+            if unique_files:
+                print(f"✓ Found {len(unique_files)} file(s) in folder")
+                return unique_files
+
+            return None
+        except Exception as e:
+            print(f"⚠ Could not extract file IDs: {e}")
+            return None
+
+    def _download_files_individually(self, subtitles_folder, files):
+        """Download files individually by file ID."""
+        success_count = 0
+        failed = []
+
+        print(f"\n📥 Downloading {len(files)} file(s)...\n")
+
+        for i, (file_id, filename) in enumerate(files, 1):
+            output_file = subtitles_folder / filename
+
+            # Skip if exists
+            if output_file.exists():
+                print(f"{i:2d}. ✓ {filename} (already exists)")
+                success_count += 1
+                continue
+
+            print(f"{i:2d}. Downloading {filename}...", end=" ", flush=True)
+
+            url = f"https://drive.google.com/uc?id={file_id}"
+            result = subprocess.run(
+                ["gdown", url, "-O", str(output_file), "-q"],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0 and output_file.exists():
+                size_mb = output_file.stat().st_size / 1024 / 1024
+                print(f"✓ ({size_mb:.1f}MB)")
+                success_count += 1
+            else:
+                print(f"✗")
+                failed.append(filename)
+
+        if failed:
+            print(f"\n⚠ Failed to download: {len(failed)} file(s)")
+            for name in failed:
+                print(f"   - {name}")
+
+        return success_count
+
+    def _download_from_gdrive(self, subtitles_folder, force: bool = True):
         # Convert URL to gdown-compatible format
         gdrive_url = convert_gdrive_url(self.gdrive_url)
 
         # Detect if URL is a folder or individual file
         is_folder = "/folders/" in gdrive_url or "/drive/folders/" in gdrive_url
 
+        # Count existing files before download
+        existing_files = set(f.name for f in subtitles_folder.glob("*.ass"))
+
+        if existing_files and is_folder and not force:
+            # Folder already has files - assume download complete, skip download
+            print(f"ℹ Found {len(existing_files)} existing subtitle(s)")
+            for name in sorted(existing_files):
+                print(f"   ✓ {name}")
+            print("✓ Skipping download (already present)")
+            return
+
         if is_folder:
-            # Download entire folder
-            subprocess.run(
-                [
-                    "gdown",
-                    "--folder",
-                    "-O",
-                    str(subtitles_folder),
-                    gdrive_url,
-                    "--remaining-ok",
-                ],
-                check=True,
-            )
+            # For folders, use individual file download method (more reliable than gdown --folder)
+            if force and existing_files:
+                print(f"🔄 Force re-downloading (will replace existing {len(existing_files)} file(s))...")
+
+            # Try to extract file IDs and download individually
+            files = self._extract_file_ids_from_folder(gdrive_url)
+
+            if files:
+                # Successfully extracted file IDs - download individually
+                self._download_files_individually(subtitles_folder, files)
+            else:
+                # Fallback to gdown --folder if extraction fails
+                print("📥 Downloading subtitles (fallback method)...")
+                result = subprocess.run(
+                    [
+                        "gdown",
+                        "--folder",
+                        "-O",
+                        str(subtitles_folder),
+                        gdrive_url,
+                        "--remaining-ok",
+                    ],
+                    check=False,
+                )
+                if result.returncode != 0:
+                    print("⚠ Warning: Some files could not be downloaded (may be inaccessible)")
         else:
-            # Download individual file
+            # Download individual file - fail if unavailable
             subprocess.run(
                 [
                     "gdown",
@@ -101,8 +216,19 @@ class SubtitleDownloader:
                 check=True,
             )
 
+        # Count files after download
+        all_files = set(f.name for f in subtitles_folder.glob("*.ass"))
+        new_files = all_files - existing_files
+
+        if new_files:
+            print(f"✓ Downloaded {len(new_files)} new subtitle(s)")
+            for name in sorted(new_files):
+                print(f"   ✓ {name}")
+        elif force and existing_files:
+            print(f"✓ Re-downloaded {len(all_files)} subtitle(s)")
+
         print("✓ Download complete!")
-        print(f"✓ Subtitles saved to: {subtitles_folder}")
+        print(f"✓ Total subtitles: {len(all_files)} in {subtitles_folder}")
 
     def _extract_zips(self, folder: Path) -> int:
         """Extract any ZIP files found in folder and return count of extracted files."""
@@ -141,7 +267,7 @@ class SubtitleDownloader:
 
         return extracted_count
 
-    def download(self) -> int:
+    def download(self, force: bool = True) -> int:
         arc_path = self._setup_path()
 
         subtitles_folder = self._setup_subtitle_folder(arc_path)
@@ -149,7 +275,7 @@ class SubtitleDownloader:
         print(f"Downloading subtitles to: {subtitles_folder}")
         print(f"From: {self.gdrive_url}")
 
-        self._download_from_gdrive(subtitles_folder)
+        self._download_from_gdrive(subtitles_folder, force=force)
 
         # Extract any ZIP files
         self._extract_zips(subtitles_folder)

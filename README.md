@@ -1,22 +1,26 @@
 # One Pace Downloader
 
-Pipeline automatizado para baixar episódios e legendas do One Pace. Baixe, organize e assista tudo em um único comando.
+Pipeline automatizado para baixar episódios e legendas do One Pace. Baixe, organize e assista com uma experiência interativa no terminal.
 
-## Início Rápido
+## Início Rápido — Experiência Interativa ⭐
 
-### Opção 1: Browser Interativo (Recomendado) ⭐
-
-Selecione a saga e o arco via menu interativo:
+A forma mais fácil e recomendada:
 
 ```bash
 uv run browse.py
 ```
 
-O script scrapo automaticamente https://onepaceptbr.github.io/, oferece seleção com fzf e executa o pipeline.
+Isso abre um menu interativo onde você:
+1. Seleciona a saga (East Blue, Alabasta, etc)
+2. Seleciona o arco desejado
+3. Vê confirmação dos links
+4. O pipeline executa automaticamente
 
-### Opção 2: Linha de Comando (Manual)
+O script scrapo automaticamente https://onepaceptbr.github.io/, oferece seleção com fzf e gerencia todo o download—episódios, legendas, organização e verificação.
 
-Fornece as URLs manualmente:
+### Alternativa: Linha de Comando (Manual)
+
+Se preferir especificar as URLs diretamente:
 
 ```bash
 uv run main.py "<URL_NYAA>" "<URL_GDRIVE>" "<NOME_PASTA>"
@@ -55,17 +59,25 @@ uv run main.py \
 
 ## Pré-requisitos
 
-Instale essas dependências do sistema:
+Dependências do sistema obrigatórias:
+
+| Ferramenta | Necessário para | Instalação |
+|-----------|-----------------|-----------|
+| **transmission-cli** | Downloads de episódios | Abaixo ↓ |
+| **fzf** | Menu interativo (browse.py) | Abaixo ↓ |
+| **uv** | Gerenciar scripts Python | Abaixo ↓ |
+
+### Instalar Dependências
 
 **Arch Linux:**
 ```bash
-sudo pacman -S transmission-cli fzf python uv
+sudo pacman -S transmission-cli fzf uv
 ```
 
 **Debian/Ubuntu:**
 ```bash
 sudo apt install transmission-cli fzf python3
-pip install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 **macOS:**
@@ -73,7 +85,7 @@ pip install uv
 brew install transmission-cli fzf uv
 ```
 
-**Nota:** `fzf` é obrigatório apenas para o `browse.py`. O `main.py` funciona sem ele.
+**Nota:** Para usar apenas `main.py` (entrada manual de URLs), `fzf` é opcional. Para a experiência interativa com `browse.py`, todas as ferramentas acima são necessárias.
 
 ## Instalação
 
@@ -98,25 +110,26 @@ arc15-jaya/
 
 ## Scripts Disponíveis
 
-### `browse.py` - Browser Interativo com fzf (Recomendado) ⭐
+### `browse.py` — Menu Interativo (Recomendado) ⭐
 
-O jeito mais fácil de baixar! Scrapo https://onepaceptbr.github.io/ e oferece seleção interativa para saga e arco.
+A experiência recomendada. Scrapo https://onepaceptbr.github.io/ e oferece seleção interativa no terminal usando fzf.
 
 ```bash
 uv run browse.py
 ```
 
-**Fluxo:**
-1. Seleciona a saga (East Blue, Alabasta, etc)
-2. Seleciona o arco (Arco 8, 9, 10, etc)
-3. Automaticamente gera o nome da pasta correto
-4. Mostra confirmação dos links
-5. Executa o pipeline completo
+**Como funciona:**
+1. Scrapo automaticamente a página de downloads
+2. Menu para selecionar a saga (East Blue, Alabasta, etc.)
+3. Menu para selecionar o arco (Arco 8, 9, 10, etc.)
+4. Gera nome da pasta automaticamente
+5. Mostra confirmação dos links encontrados
+6. Executa o pipeline completo (downloads + legendas + organização)
 
-**Status dos arcos:**
-- `[nyaa+gdrive]` - Episódios + legendas disponíveis
-- `[apenas nyaa]` - Apenas episódios disponíveis
-- `[apenas gdrive]` - Apenas legendas disponíveis
+**Indicadores de disponibilidade:**
+- `[nyaa+gdrive]` — Episódios + legendas disponíveis
+- `[apenas nyaa]` — Apenas episódios disponíveis
+- `[apenas gdrive]` — Apenas legendas disponíveis
 
 ### `main.py` - Pipeline Completo (Manual)
 
@@ -191,7 +204,18 @@ Result: 1/2 videos have matching subtitles
 
 ## Fluxo Completo: Passo a Passo
 
-### Opção 1: Pipeline Automático (Recomendado)
+### Opção 1: Menu Interativo (Recomendado) ⭐
+
+```bash
+# Tudo automaticamente: selecione saga → arco → execute
+uv run browse.py
+```
+
+O `browse.py` cuida de tudo: download de episódios, legendas, organização e emparelhamento automático.
+
+### Opção 2: Pipeline Manual
+
+Se preferir especificar as URLs:
 
 ```bash
 # Baixa tudo automaticamente
@@ -207,7 +231,7 @@ uv run match_onepace_subtitles.py "arc15-jaya" "arc15-jaya/subtitles"
 uv run verify_subtitles.py "arc15-jaya"
 ```
 
-### Opção 2: Controle Manual
+### Opção 3: Controle Total (Passo a Passo)
 
 ```bash
 # Passo 1: Baixa episódios (inicia transmission)
@@ -350,7 +374,22 @@ Para manter tudo organizado:
 │   └── arc13-jaya/
 ```
 
-## Exemplo Completo: Baixar Arco Jaya
+## Exemplo Completo: Experiência Recomendada
+
+```bash
+cd ~/Videos/onepace
+
+# 1. Menu interativo: seleciona saga → arco → executa pipeline
+uv run browse.py
+
+# 2. Verificar resultado (opcional)
+uv run verify_subtitles.py "arc15-jaya"
+
+# 3. Assistir!
+mpv arc15-jaya/
+```
+
+### Se precisar executar manualmente:
 
 ```bash
 cd ~/Videos/onepace
